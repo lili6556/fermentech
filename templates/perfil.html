@@ -1,28 +1,30 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3F1D12">
 
     <title>Meu Perfil | FERMENTECH</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --verde: #244b38;
-            --verde-escuro: #183528;
-            --verde-claro: #eaf2ec;
-            --dourado: #c69b52;
-            --fundo: #f5f6f2;
-            --texto: #25332b;
-            --texto-suave: #68746c;
-            --borda: #e1e6df;
-            --branco: #ffffff;
-            --erro: #a63232;
+            --gelb: #F4DEAF;
+            --creme: #FFF4D9;
+            --cafe: #3F1D12;
+            --cafe-claro: #5A2D1B;
+            --cafe-fundo: #1E0C07;
+            --caramelo: #B9772F;
+            --caramelo-claro: #E2A964;
+            --oliva: #4d6a2a;
+            --erro: #8a2515;
+            --texto: #3F1D12;
+            --texto-suave: rgba(63, 29, 18, 0.72);
+            --borda: rgba(63, 29, 18, 0.14);
         }
 
         * {
@@ -32,212 +34,291 @@
         }
 
         body {
+            position: relative;
+            isolation: isolate;
             min-height: 100vh;
-            font-family: 'Inter', sans-serif;
-            background: var(--fundo);
-            color: var(--texto);
+            min-height: 100svh;
+            font-family: "Jost", Arial, Helvetica, sans-serif;
+            color: var(--gelb);
+            background: radial-gradient(ellipse at 50% 0%, var(--cafe-claro) 0%, var(--cafe) 50%, var(--cafe-fundo) 100%);
+            background-attachment: fixed;
         }
 
+        /* grão fino e brilho suave no fundo */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.09;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            left: 50%;
+            top: 35%;
+            width: min(120vmin, 900px);
+            aspect-ratio: 1;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(244, 222, 175, 0.12), transparent 65%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* ==================================================
+           TOPO
+        ================================================== */
+
         .topo {
-            background: var(--verde-escuro);
-            color: var(--branco);
-            padding: 20px 6%;
+            padding: 18px 6%;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 18px;
             flex-wrap: wrap;
-            border-bottom: 4px solid var(--dourado);
-        }
-
-        .marca {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .marca img {
-            width: 45px;
-            height: 45px;
-            object-fit: contain;
-            border-radius: 8px;
+            border-bottom: 1px solid rgba(244, 222, 175, 0.14);
+            background: rgba(30, 12, 7, 0.55);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
         }
 
         .marca h1 {
-            font-size: 21px;
-            letter-spacing: 1px;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 28px;
+            font-weight: 600;
+            line-height: 1;
+            letter-spacing: 0.18em;
+            color: var(--gelb);
         }
 
         .marca p {
-            margin-top: 4px;
-            font-size: 11px;
-            color: #d6dfd8;
-            letter-spacing: 1.5px;
+            margin-top: 6px;
+            font-size: 13px;
+            font-weight: 300;
+            letter-spacing: 0.04em;
+            color: rgba(244, 222, 175, 0.7);
         }
 
         .voltar {
-            color: white;
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            padding: 10px 22px;
+            border-radius: 999px;
+            border: 1px solid rgba(244, 222, 175, 0.28);
+            color: var(--gelb);
             text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 11px 16px;
-            border: 1px solid #6d8274;
-            border-radius: 9px;
-            transition: background .2s;
+            font-size: 15px;
+            transition: 0.2s;
         }
 
         .voltar:hover {
-            background: #315541;
+            color: var(--cafe);
+            background: var(--gelb);
+            border-color: var(--gelb);
         }
+
+        /* ==================================================
+           CONTEÚDO
+        ================================================== */
 
         main {
             width: min(100% - 32px, 960px);
-            margin: 35px auto 55px;
+            margin: 48px auto 40px;
         }
 
         .introducao {
-            margin-bottom: 25px;
+            margin-bottom: 32px;
+            animation: surge 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
         }
 
         .introducao .etiqueta {
-            color: #8b6a34;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 11px;
-            font-weight: 800;
-            margin-bottom: 9px;
+            color: var(--caramelo-claro);
+            font-size: 16px;
+            font-weight: 400;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
         }
 
         .introducao h2 {
-            font-size: clamp(25px, 4vw, 33px);
-            color: var(--verde-escuro);
-            margin-bottom: 9px;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(42px, 8vw, 68px);
+            font-weight: 600;
+            line-height: 1.05;
+            margin-bottom: 12px;
+            color: var(--gelb);
+            text-shadow: 0 6px 28px rgba(0, 0, 0, 0.5);
         }
 
         .introducao p {
-            color: var(--texto-suave);
-            line-height: 1.7;
-            font-size: 14px;
+            max-width: 560px;
+            color: rgba(244, 222, 175, 0.8);
+            font-weight: 300;
+            line-height: 1.65;
+            font-size: 16px;
         }
 
+        /* ==================================================
+           MENSAGENS
+        ================================================== */
+
         .mensagens {
-            margin-bottom: 20px;
+            margin-bottom: 22px;
+        }
+
+        .mensagens:empty {
+            display: none;
         }
 
         .mensagem {
-            padding: 14px 16px;
-            border-radius: 10px;
-            font-size: 13px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 400;
             line-height: 1.5;
             margin-bottom: 10px;
             overflow-wrap: anywhere;
         }
 
         .mensagem.sucesso {
-            color: #205a36;
-            background: #e7f5e9;
-            border: 1px solid #c5e6cc;
+            color: #34501f;
+            background: #EAF0D2;
+            border: 1px solid #B9C98F;
         }
 
         .mensagem.erro {
-            color: #8c2828;
-            background: #fff0ef;
-            border: 1px solid #f0c8c5;
+            color: var(--erro);
+            background: #F8DDD3;
+            border: 1px solid #E3A898;
         }
+
+        /* ==================================================
+           CARTÕES
+        ================================================== */
 
         .grade {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 22px;
+            gap: 24px;
             align-items: start;
         }
 
         .cartao {
-            background: var(--branco);
-            border: 1px solid var(--borda);
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: 0 5px 20px rgba(30, 55, 38, .045);
+            background: linear-gradient(165deg, var(--creme), var(--gelb) 75%);
+            color: var(--texto);
+            border-radius: 26px;
+            padding: 30px;
+            box-shadow:
+                0 36px 70px -30px rgba(0, 0, 0, 0.75),
+                inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            animation: surge 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
         }
+
+        .grade .cartao:nth-child(1) { animation-delay: 0.08s; }
+        .grade .cartao:nth-child(2) { animation-delay: 0.16s; }
+        .grade .cartao:nth-child(3) { animation-delay: 0.24s; }
 
         .cartao-cabecalho {
             display: flex;
             align-items: flex-start;
-            gap: 13px;
-            margin-bottom: 23px;
+            gap: 14px;
+            margin-bottom: 26px;
         }
 
         .icone {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: var(--verde-claro);
-            color: var(--verde);
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(160deg, #4f2616, #2a120b);
+            color: var(--gelb);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 21px;
+            font-size: 22px;
             flex-shrink: 0;
+            box-shadow: inset 0 1px 0 rgba(244, 222, 175, 0.2);
         }
 
         .icone.seguro {
-            background: #f7eddb;
-            color: #8b672e;
+            background: linear-gradient(160deg, #c98a42, var(--caramelo));
+            color: var(--cafe);
         }
 
         .cartao h3 {
-            color: var(--verde-escuro);
-            font-size: 17px;
-            margin-bottom: 6px;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 28px;
+            font-weight: 600;
+            line-height: 1.1;
+            color: var(--cafe);
+            margin-bottom: 4px;
         }
 
         .cartao-cabecalho p {
             color: var(--texto-suave);
-            font-size: 12px;
-            line-height: 1.6;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.5;
         }
 
+        /* ==================================================
+           CAMPOS
+        ================================================== */
+
         .campo {
-            margin-bottom: 17px;
+            margin-bottom: 18px;
         }
 
         .campo label {
             display: block;
             margin-bottom: 8px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #394a3e;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--cafe);
         }
 
         .campo input {
             width: 100%;
-            padding: 12px 13px;
-            border: 1px solid #d7dfd8;
-            border-radius: 9px;
+            min-height: 52px;
+            padding: 12px 16px;
+            border: 1px solid rgba(63, 29, 18, 0.22);
+            border-radius: 14px;
             font-family: inherit;
-            font-size: 14px;
+            font-size: 16px;
             color: var(--texto);
-            background: white;
+            background: rgba(255, 255, 255, 0.55);
             outline: none;
-            transition: border-color .2s, box-shadow .2s;
+            transition: 0.2s ease;
         }
 
         .campo input:focus {
-            border-color: var(--verde);
-            box-shadow: 0 0 0 3px rgba(36, 75, 56, .11);
+            border-color: var(--cafe);
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: 0 0 0 4px rgba(185, 119, 47, 0.25);
         }
 
         .campo input[readonly] {
-            background: #f3f5f2;
-            color: #657168;
+            background: rgba(63, 29, 18, 0.07);
+            border-style: dashed;
+            color: var(--texto-suave);
             cursor: default;
+        }
+
+        .campo input[readonly]:focus {
+            box-shadow: none;
+            border-color: rgba(63, 29, 18, 0.22);
         }
 
         .campo small {
             display: block;
-            margin-top: 7px;
+            margin-top: 8px;
             color: var(--texto-suave);
-            font-size: 11px;
+            font-size: 13px;
+            font-weight: 300;
             line-height: 1.5;
         }
 
@@ -246,60 +327,87 @@
         }
 
         .senha-wrapper input {
-            padding-right: 75px;
+            padding-right: 92px;
         }
 
         .mostrar-senha {
             position: absolute;
-            right: 10px;
+            right: 8px;
             top: 50%;
             transform: translateY(-50%);
+            min-height: 36px;
             border: none;
-            background: transparent;
-            color: var(--verde);
+            border-radius: 10px;
+            background: rgba(63, 29, 18, 0.08);
+            color: var(--cafe);
             cursor: pointer;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 5px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
+            transition: background 0.2s;
         }
+
+        .mostrar-senha:hover {
+            background: rgba(63, 29, 18, 0.16);
+        }
+
+        /* ==================================================
+           BOTÃO E AVISO
+        ================================================== */
 
         .botao {
             display: block;
             width: 100%;
+            min-height: 54px;
             border: none;
-            border-radius: 9px;
+            border-radius: 14px;
             padding: 13px 16px;
-            background: var(--verde);
-            color: white;
+            background: linear-gradient(180deg, var(--cafe-claro), var(--cafe));
+            color: var(--gelb);
             font-family: inherit;
-            font-size: 13px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
             cursor: pointer;
-            transition: background .2s, transform .2s;
+            box-shadow:
+                inset 0 1px 0 rgba(244, 222, 175, 0.25),
+                0 10px 24px -12px rgba(63, 29, 18, 0.85);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .botao:hover {
-            background: #315c43;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow:
+                inset 0 1px 0 rgba(244, 222, 175, 0.25),
+                0 16px 30px -12px rgba(63, 29, 18, 0.9);
+        }
+
+        .botao:active {
+            transform: translateY(0);
         }
 
         .botao:focus-visible,
         .voltar:focus-visible,
         .mostrar-senha:focus-visible {
-            outline: 3px solid var(--dourado);
+            outline: 3px solid var(--caramelo);
             outline-offset: 3px;
         }
 
         .aviso {
-            background: #faf7ef;
-            border: 1px solid #e9dfc9;
-            border-radius: 10px;
-            padding: 13px;
-            margin-top: 16px;
-            color: #725d35;
-            font-size: 11px;
-            line-height: 1.6;
+            background: rgba(63, 29, 18, 0.07);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-top: 18px;
+            color: var(--texto-suave);
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.55;
         }
+
+        /* ==================================================
+           DADOS DA CONTA
+        ================================================== */
 
         .conta-info {
             grid-column: 1 / -1;
@@ -308,43 +416,76 @@
         .conta-info .detalhes {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 16px;
+            gap: 14px;
         }
 
         .detalhe {
-            background: #f7f8f5;
-            padding: 15px;
-            border-radius: 10px;
+            background: rgba(63, 29, 18, 0.07);
+            padding: 16px 18px;
+            border-radius: 16px;
             min-width: 0;
         }
 
         .detalhe span {
             display: block;
             color: var(--texto-suave);
-            font-size: 11px;
-            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 300;
+            margin-bottom: 8px;
         }
 
         .detalhe strong {
-            font-size: 13px;
+            font-size: 16px;
+            font-weight: 500;
             overflow-wrap: anywhere;
         }
 
-        .status {
-            display: inline-block;
-            color: #24663a;
-            background: #e4f4e8;
-            border-radius: 20px;
-            padding: 5px 10px;
-            font-size: 11px;
+        .detalhe .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #34501f;
+            background: rgba(77, 106, 42, 0.16);
+            border-radius: 999px;
+            padding: 5px 14px;
+            font-size: 14px;
+        }
+
+        .detalhe .status::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--oliva);
         }
 
         footer {
             text-align: center;
-            padding: 22px;
-            color: #788078;
-            font-size: 11px;
+            padding: 20px 20px 36px;
+            color: rgba(244, 222, 175, 0.6);
+            font-size: 13px;
+            font-weight: 300;
+            letter-spacing: 0.02em;
         }
+
+        /* ==================================================
+           ANIMAÇÃO
+        ================================================== */
+
+        @keyframes surge {
+            from {
+                opacity: 0;
+                transform: translateY(22px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ==================================================
+           MOBILE
+        ================================================== */
 
         @media (max-width: 700px) {
             .grade {
@@ -360,15 +501,32 @@
             }
 
             .topo {
-                padding: 17px 20px;
+                padding: 16px 20px;
+            }
+
+            .marca h1 {
+                font-size: 24px;
             }
 
             main {
-                margin-top: 26px;
+                margin-top: 34px;
             }
 
             .cartao {
-                padding: 20px;
+                padding: 24px 20px;
+                border-radius: 22px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .introducao,
+            .cartao {
+                animation: none;
+            }
+
+            .botao,
+            .campo input {
+                transition: none;
             }
         }
     </style>
@@ -377,13 +535,8 @@
 <body>
     <header class="topo">
         <div class="marca">
-            <img src="{{ url_for('static', filename='logo.png') }}"
-                 alt="Logo FERMENTECH"
-                 onerror="this.style.display='none'">
-            <div>
-                <h1>FERMENTECH</h1>
-                <p>GESTÃO INTELIGENTE DA FERMENTAÇÃO</p>
-            </div>
+            <h1>FERMENTECH</h1>
+            <p>Gestão inteligente da fermentação</p>
         </div>
 
         <a class="voltar" href="{{ url_for('voltar_perfil') }}">
