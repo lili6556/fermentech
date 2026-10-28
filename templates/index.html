@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#3F1D12">
+<title>FERMENTECH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Jost:wght@300&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<style>
+:root{--gelb:#F4DEAF;--cafe:#3F1D12}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+body{color:var(--gelb);font-family:"Jost",Arial,sans-serif;cursor:pointer;transition:opacity .5s;
+background:radial-gradient(ellipse at 50% 40%,#5A2D1B 0%,var(--cafe) 50%,#1E0C07 100%)}
+body.sai{opacity:0}
+
+/* brilho Gelb atrás do cacau, com parallax */
+.glow{position:fixed;left:50%;top:53%;width:min(92vmin,760px);aspect-ratio:1;border-radius:50%;
+translate:calc(-50% + var(--px,0)*22px) calc(-50% + var(--py,0)*14px);
+background:radial-gradient(circle,#F4DEAF 0,#F4DEAFd9 36%,#F4DEAF55 56%,transparent 70%);filter:blur(8px);
+animation:acende 1.6s cubic-bezier(.2,.8,.2,1) backwards}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;animation:acende 1.4s .2s backwards}
+
+.topo{position:fixed;top:max(26px,env(safe-area-inset-top));left:0;right:0;text-align:center;pointer-events:none}
+.nome{font:600 clamp(34px,10vw,92px)/1 "Cormorant Garamond",Georgia,serif;letter-spacing:.18em;margin-left:.18em;
+color:var(--gelb);text-shadow:0 2px 0 #1E0C07,0 8px 30px #000a,0 0 40px #F4DEAF33;animation:titulo 1.8s .5s cubic-bezier(.2,.8,.2,1) backwards}
+.dica{position:fixed;bottom:max(34px,calc(env(safe-area-inset-bottom) + 20px));left:0;right:0;text-align:center;font-weight:300;font-size:15px;letter-spacing:.06em;
+color:#F4DEAF;pointer-events:none;animation:surge 1s 1.4s backwards,pulsa 2.4s 2.4s ease-in-out infinite;transition:opacity .5s}
+.dica.some{opacity:0!important;animation:none}
+
+@keyframes acende{from{opacity:0;scale:.9}}
+@keyframes surge{from{opacity:0;translate:0 16px}}
+@keyframes titulo{from{opacity:0;letter-spacing:.5em;filter:blur(10px)}}
+@keyframes pulsa{50%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-delay:0s!important}}
+</style>
+</head>
+<body>
+<div class="glow" id="glow"></div>
+<canvas id="cv" aria-label="Cacau em 3D. Toque para abrir" role="button" tabindex="0"></canvas>
+<header class="topo">
+  <h1 class="nome">FERMENTECH</h1>
+</header>
+<p class="dica" id="dica">Toque para abrir</p>
+
+<script>
+/* Depois que o cacau abre: admin → /painel/admin, funcionário → /painel/funcionario, senão → /login */
+let indo = false;
+async function irParaProxima() {
+  if (indo) return; indo = true;
+  let destino = "/login";
+  try {
+    const resposta = await fetch("/api/sessao");
+    if (resposta.ok) {
+      const dados = await resposta.json();
+      if (dados.autenticado && dados.tipo === "admin") destino = "/painel/admin";
+      else if (dados.autenticado && dados.tipo === "funcionario") destino = "/painel/funcionario";
+    }
+  } catch (erro) {
+    console.error("Erro ao verificar sessão:", erro);
+  }
+  document.body.classList.add("sai");
+  setTimeout(() => { window.location.href = destino; }, 500);
+}
+</script>
+
+<script type="module">
+const reduz = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const dica = document.getElementById("dica"), glow = document.getElementById("glow");
+let nx = 0, ny = 0;
+
+/* o cacau segue o mouse e o dedo */
+const mover = (x, y) => {
+  nx = x / innerWidth * 2 - 1; ny = y / innerHeight * 2 - 1;
+  glow.style.setProperty("--px", nx.toFixed(3)); glow.style.setProperty("--py", ny.toFixed(3));
+};
+addEventListener("pointermove", e => mover(e.clientX, e.clientY));
+addEventListener("pointerdown", e => mover(e.clientX, e.clientY));
+addEventListener("pointerup", e => { if (e.pointerType === "touch") mover(innerWidth / 2, innerHeight / 2); });
+
+try {
+  const THREE = await import("three");
+  const { lerp, smoothstep: sm } = THREE.MathUtils;
+  const cv = document.getElementById("cv");
+  const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(32, 1, .1, 60);
+
+  /* vagem: 10 costelas e silhueta afilada */
+  const R = 64, H = 96, pos = [], col = [], uv = [], idx = [], c = new THREE.Color();
+  for (let i = 0; i <= H; i++) {
+    const t = i / H, y = (t - .5) * 4.65, sil = Math.pow(Math.sin(Math.PI * t), .62), tp = .91 + .1 * Math.sin(Math.PI * (t + .1));
+    for (let j = 0; j <= R; j++) {
+      const a = j / R * Math.PI * 2, rb = Math.cos(a * 10), k = (rb + 1) / 2;
+      const r = Math.max(.035, sil) * tp * (1 + rb * .105 + Math.cos(a * 20) * .012);
+      pos.push(r * Math.cos(a) + .055 * Math.sin(t * 6.9) * sil, y, r * Math.sin(a));
+      uv.push(j / R * 6, t * 4);
+      c.setRGB(.07 + k * .17, .026 + k * .075, .014 + k * .035);
+      col.push(c.r, c.g, c.b);
+    }
+  }
+  for (let i = 0; i < H; i++) for (let j = 0; j < R; j++) {
+    const a = i * (R + 1) + j, b = a + R + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setIndex(idx);
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.computeVertexNormals();
+
+  const nc = document.createElement("canvas"); nc.width = nc.height = 128;
+  const nctx = nc.getContext("2d"), img = nctx.createImageData(128, 128);
+  for (let i = 0; i < img.data.length; i += 4) { const v = 110 + Math.random() * 90; img.data.set([v, v, v, 255], i); }
+  nctx.putImageData(img, 0, 0);
+  const bump = new THREE.CanvasTexture(nc); bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
+
+  const shellMat = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .6, metalness: .05, bumpMap: bump, bumpScale: .05, transparent: true });
+  const podMat = shellMat(), shellMats = [shellMat(), shellMat()];
+  const stemMat = new THREE.MeshStandardMaterial({ color: 0x4a3720, roughness: .95, transparent: true });
+
+  const pod = new THREE.Group(), closed = new THREE.Group(), open = new THREE.Group();
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(.1, .18, .66, 14), stemMat);
+  stem.position.set(-.04, 2.5, 0); stem.rotation.z = -.2;
+  closed.add(new THREE.Mesh(geo, podMat), stem);
+  pod.add(closed, open); scene.add(pod);
+
+  /* interior aberto: polpa e sementes */
+  const sh = new THREE.Shape();
+  sh.moveTo(0, 2.17); sh.bezierCurveTo(.68, 2.08, .9, 1.42, .86, .5); sh.bezierCurveTo(.82, -.55, .48, -1.62, 0, -2.12);
+  sh.bezierCurveTo(-.48, -1.62, -.82, -.55, -.86, .5); sh.bezierCurveTo(-.9, 1.42, -.68, 2.08, 0, 2.17);
+  const inner = new THREE.ExtrudeGeometry(sh, { bevelEnabled: true, bevelSegments: 3, bevelSize: .07, bevelThickness: .06, curveSegments: 32, depth: .12 });
+  inner.center();
+  const cream = (color, extra) => new THREE.MeshPhysicalMaterial({ color, roughness: .62, clearcoat: .24, clearcoatRoughness: .6, sheen: .25, sheenColor: new THREE.Color(0xffe6ba), transparent: true, opacity: 0, ...extra });
+  const pulpMat = cream(0xf1e2bd, { side: THREE.DoubleSide });
+  const beanMats = [0xe4d0a4, 0xd2ba8f, 0xedd9b0].map(x => cream(x));
+  const seamMat = new THREE.MeshStandardMaterial({ color: 0x5e2b20, roughness: .8, transparent: true, opacity: 0 });
+  const sph = new THREE.SphereGeometry(1, 24, 18), sph2 = new THREE.SphereGeometry(1, 10, 8);
+
+  const metade = (lado, mat) => {
+    const g = new THREE.Group();
+    const casca = new THREE.Mesh(geo, mat); casca.scale.set(.88, .98, .43); g.add(casca);
+    const polpa = new THREE.Mesh(inner, pulpMat); polpa.position.z = .46; polpa.scale.set(.88, .96, 1); g.add(polpa);
+    for (let r = 0; r < 7; r++) for (let k = 0; k < 2; k++) {
+      const n = r * 2 + k, w = .19 + Math.sin((r + 1) / 8 * Math.PI) * .08;
+      const b = new THREE.Mesh(sph, beanMats[(n + (lado > 0 ? 1 : 0)) % 3]);
+      b.position.set((k ? 1 : -1) * w + Math.sin(n * 2.7 + lado) * .025, -1.38 + r * .46 + Math.cos(n * 1.9) * .035, .62 + Math.sin(n) * .018);
+      b.rotation.set(Math.sin(n * .8) * .08, Math.cos(n * 1.4) * .16, (k ? .13 : -.13) + Math.sin(n) * .07);
+      b.scale.set(.22, .3, .145);
+      const s = new THREE.Mesh(sph2, seamMat); s.position.z = .94; s.scale.set(.055, .55, .025); b.add(s);
+      g.add(b);
+    }
+    return g;
+  };
+  const esq = metade(-1, shellMats[0]), dir = metade(1, shellMats[1]);
+  open.add(esq, dir); open.visible = false;
+
+  scene.add(new THREE.HemisphereLight(0xfff0d0, 0x2a120b, 1.2));
+  const key = new THREE.DirectionalLight(0xffe2b0, 3.2); key.position.set(-4, 6, 6); scene.add(key);
+  const rim = new THREE.PointLight(0xffb866, 60, 0, 2); rim.position.set(3.5, 3, -4); scene.add(rim);
+
+  const resize = () => {
+    renderer.setSize(innerWidth, innerHeight, false);
+    cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
+  };
+  addEventListener("resize", resize); resize();
+
+  /* abrir: toque, clique, Enter/Espaço, ou sozinho após alguns segundos */
+  let alvo = 0, op = 0, cx = 0, cy = 0, feito = false;
+  const abrir = () => { if (alvo) return; alvo = 1; dica.classList.add("some"); };
+  addEventListener("click", abrir);
+  addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
+  setTimeout(abrir, 7000);
+
+  const clock = new THREE.Clock(); let t = 0;
+  renderer.setAnimationLoop(() => {
+    const dt = Math.min(clock.getDelta(), .05); t += dt;
+    op += (alvo - op) * (reduz ? 1 : 1 - Math.exp(-dt * 3));
+    const k = 1 - Math.exp(-dt * 5);
+    cx += (nx - cx) * k; cy += (ny - cy) * k;
+
+    const oo = sm(op, .08, .6), co = 1 - sm(op, 0, .45), mob = cam.aspect < .72;
+    podMat.opacity = stemMat.opacity = co; closed.visible = co > .01; open.visible = op > .015;
+    shellMats.forEach(m => m.opacity = oo); pulpMat.opacity = seamMat.opacity = oo; beanMats.forEach(m => m.opacity = oo);
+
+    const sp = (mob ? .78 : 1.08) * op;
+    esq.position.x = -sp; dir.position.x = sp;
+    esq.rotation.set(.03 * op, -.18 * op, -.11 * op); dir.rotation.set(-.03 * op, .18 * op, .11 * op);
+    open.scale.setScalar((mob ? .82 : 1) * lerp(.82, 1, op)); open.position.z = op * .2;
+
+    /* segue o ponteiro; aberto, gira menos para mostrar as sementes */
+    const calmo = 1 - .55 * op, sway = reduz ? 0 : Math.sin(t * .7) * .1 * (1 - op);
+    pod.rotation.set(cy * .45 * calmo, cx * .95 * calmo + sway, -.09 * (1 - op));
+    pod.position.set(cx * .3, (reduz ? 0 : Math.sin(t * .9) * .1) - .2, 0);
+    key.position.x = -4 + cx * 3.5; key.position.y = 6 - cy * 2.5;
+
+    cam.position.set(0, .2, Math.max(11.5, lerp(3.2, mob ? 3.4 : 4.6, op) / (.573 * cam.aspect)));
+    renderer.render(scene, cam);
+
+    if (op > .985 && !feito) { feito = true; setTimeout(irParaProxima, 1000); }
+  });
+} catch (e) {
+  console.warn("Cacau 3D indisponível:", e);
+  dica.textContent = "Entrando…";
+  setTimeout(irParaProxima, 2500);
+}
+</script>
+</body>
+</html>

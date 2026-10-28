@@ -1,0 +1,454 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3F1D12">
+
+    <title>FERMENTECH | Administrador</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --gelb: #F4DEAF;
+            --creme: #FFF4D9;
+            --cafe: #3F1D12;
+            --cafe-claro: #5A2D1B;
+            --cafe-fundo: #1E0C07;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            position: relative;
+            isolation: isolate;
+            min-height: 100vh;
+            min-height: 100svh;
+            font-family: "Jost", Arial, Helvetica, sans-serif;
+            background: var(--cafe-fundo);
+            color: var(--gelb);
+            padding-bottom: 100px;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: url("/static/fundo.jpg") center / cover no-repeat;
+            filter: saturate(1.1) contrast(1.05);
+            transform: translateZ(0);
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.1'/%3E%3C/svg%3E"),
+                linear-gradient(
+                    180deg,
+                    rgba(30, 12, 7, 0.9) 0%,
+                    rgba(63, 29, 18, 0.5) 34%,
+                    rgba(63, 29, 18, 0.42) 62%,
+                    rgba(30, 12, 7, 0.88) 100%
+                );
+            pointer-events: none;
+        }
+
+        /* TOPO */
+
+        .topo {
+            min-height: 78px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 28px;
+            border-bottom: 1px solid rgba(244, 222, 175, 0.14);
+            background: rgba(30, 12, 7, 0.55);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        .marca {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nome-app {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 27px;
+            font-weight: 600;
+            line-height: 1;
+            letter-spacing: 0.18em;
+            color: var(--gelb);
+        }
+
+        .perfil-topo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(244, 222, 175, 0.85);
+            font-size: 14px;
+            font-weight: 300;
+        }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gelb);
+            color: var(--cafe);
+            box-shadow: 0 0 0 3px rgba(244, 222, 175, 0.2);
+            font-size: 16px;
+        }
+
+        /* CONTEÚDO */
+
+        .conteudo {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 52px 25px 42px;
+        }
+
+        .saudacao {
+            margin-bottom: 38px;
+        }
+
+        .saudacao h1 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(40px, 7vw, 68px);
+            font-weight: 600;
+            line-height: 1.05;
+            margin-bottom: 10px;
+            color: var(--gelb);
+            text-shadow: 0 6px 28px rgba(0, 0, 0, 0.55);
+        }
+
+        .saudacao p {
+            color: rgba(244, 222, 175, 0.78);
+            font-size: 16px;
+            font-weight: 300;
+            letter-spacing: 0.04em;
+        }
+
+        /* CARTÕES */
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .card {
+            min-width: 0;
+            min-height: 200px;
+            padding: 28px;
+            border-radius: 26px;
+            background: rgba(42, 18, 11, 0.6);
+            border: 1px solid rgba(244, 222, 175, 0.18);
+            box-shadow:
+                0 24px 50px -26px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(244, 222, 175, 0.12);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: inherit;
+            text-decoration: none;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition:
+                transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+                background 0.3s ease,
+                border-color 0.3s ease;
+            animation: surge 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.08s;
+        }
+
+        .card:nth-child(3) {
+            animation-delay: 0.16s;
+        }
+
+        .card:nth-child(4) {
+            animation-delay: 0.24s;
+        }
+
+        .card:nth-child(5) {
+            animation-delay: 0.32s;
+        }
+
+        .icone {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(244, 222, 175, 0.14);
+            box-shadow: inset 0 0 0 1px rgba(244, 222, 175, 0.18);
+            font-size: 26px;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card h2 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 28px;
+            font-weight: 600;
+            line-height: 1.1;
+            margin-top: 22px;
+            margin-bottom: 8px;
+            color: var(--gelb);
+            transition: color 0.3s ease;
+        }
+
+        .card p {
+            font-size: 15px;
+            font-weight: 300;
+            line-height: 1.55;
+            color: rgba(244, 222, 175, 0.78);
+            transition: color 0.3s ease;
+        }
+
+        .card:focus-visible {
+            outline: 3px solid var(--creme);
+            outline-offset: 4px;
+        }
+
+        @media (hover: hover) {
+            .card:hover {
+                transform: translateY(-6px);
+                background: linear-gradient(165deg, var(--creme), var(--gelb));
+                border-color: var(--creme);
+            }
+
+            .card:hover h2 {
+                color: var(--cafe);
+            }
+
+            .card:hover p {
+                color: rgba(63, 29, 18, 0.85);
+            }
+
+            .card:hover .icone {
+                background: rgba(63, 29, 18, 0.1);
+                box-shadow: inset 0 0 0 1px rgba(63, 29, 18, 0.2);
+            }
+        }
+
+        /* RODAPÉ */
+
+        .rodape {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            padding: 10px;
+            background: rgba(30, 12, 7, 0.88);
+            border-top: 1px solid rgba(244, 222, 175, 0.14);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 10;
+        }
+
+        .rodape a {
+            color: rgba(244, 222, 175, 0.85);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 400;
+            padding: 10px 26px;
+            border-radius: 999px;
+            border: 1px solid rgba(244, 222, 175, 0.22);
+            transition: 0.2s;
+        }
+
+        .rodape a:hover {
+            color: var(--cafe);
+            background: var(--gelb);
+            border-color: var(--gelb);
+        }
+
+        .sair {
+            color: #ffb8a8 !important;
+        }
+
+        .sair:hover {
+            color: var(--cafe) !important;
+        }
+
+        @keyframes surge {
+            from {
+                opacity: 0;
+                transform: translateY(22px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* MOBILE */
+
+        @media (max-width: 700px) {
+            .topo {
+                padding: 12px 18px;
+            }
+
+            .nome-app {
+                font-size: 21px;
+                letter-spacing: 0.12em;
+            }
+
+            .perfil-topo {
+                gap: 8px;
+            }
+
+            .perfil-topo > span {
+                max-width: 130px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .conteudo {
+                padding: 36px 18px 30px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                min-height: 175px;
+                padding: 24px;
+            }
+
+            .rodape {
+                gap: 18px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .card {
+                animation: none;
+                transition: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="topo">
+        <div class="marca">
+            <span class="nome-app">FERMENTECH</span>
+        </div>
+
+        <div class="perfil-topo">
+            <span>{{ nome }}</span>
+            <div class="avatar" aria-hidden="true">👤</div>
+        </div>
+    </header>
+
+    <main class="conteudo">
+
+        <section class="saudacao">
+            <h1>Olá, {{ nome.split(' ')[0] }}.</h1>
+            <p>Painel administrativo</p>
+        </section>
+
+        <section class="grid" aria-label="Menu administrativo">
+
+            <a class="card" href="{{ url_for('scanear_qr') }}">
+                <div class="icone" aria-hidden="true">📷</div>
+                <div>
+                    <h2>Escanear QR Code</h2>
+                    <p>
+                        Escaneie o código do cocho para acessar
+                        suas informações e acompanhar a fermentação.
+                    </p>
+                </div>
+            </a>
+
+            <a class="card" href="{{ url_for('minha_fermentacao') }}">
+                <div class="icone" aria-hidden="true">🌱</div>
+                <div>
+                    <h2>Minha Fermentação</h2>
+                    <p>
+                        Acesse o cocho pelo qual você está responsável
+                        e acompanhe a fermentação em andamento.
+                    </p>
+                </div>
+            </a>
+
+            <a class="card" href="{{ url_for('historico') }}">
+                <div class="icone" aria-hidden="true">📊</div>
+                <div>
+                    <h2>Histórico</h2>
+                    <p>
+                        Consulte os registros e as informações
+                        das fermentações realizadas.
+                    </p>
+                </div>
+            </a>
+
+            <a class="card" href="{{ url_for('funcionarios') }}">
+                <div class="icone" aria-hidden="true">👥</div>
+                <div>
+                    <h2>Funcionários</h2>
+                    <p>
+                        Cadastre, edite, bloqueie e gerencie
+                        os usuários que possuem acesso ao sistema.
+                    </p>
+                </div>
+            </a>
+
+            <!-- CARTÃO DE PERFIL CORRIGIDO -->
+            <a class="card" href="{{ url_for('perfil') }}">
+                <div class="icone" aria-hidden="true">⚙️</div>
+                <div>
+                    <h2>Perfil e configurações</h2>
+                    <p>
+                        Altere seu nome e gerencie a segurança
+                        e as informações da sua conta.
+                    </p>
+                </div>
+            </a>
+
+        </section>
+    </main>
+
+    <footer class="rodape">
+        <a href="{{ url_for('logout') }}" class="sair">Sair</a>
+    </footer>
+
+</body>
+</html>

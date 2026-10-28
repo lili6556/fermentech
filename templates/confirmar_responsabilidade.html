@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#3F1D12"
+    >
+
+    <title>Confirmar responsabilidade | FERMENTECH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+
+
+    <style>
+
+        :root {
+            --gelb: #F4DEAF;
+            --creme: #FFF4D9;
+            --cafe: #3F1D12;
+            --cafe-claro: #5A2D1B;
+            --cafe-fundo: #1E0C07;
+            --caramelo: #B9772F;
+            --caramelo-claro: #E2A964;
+            --texto-secundario: rgba(63, 29, 18, 0.72);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+
+        body {
+
+            position: relative;
+
+            min-height: 100vh;
+            min-height: 100svh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 28px 20px;
+
+            font-family: "Jost", Arial, Helvetica, sans-serif;
+            color: var(--cafe);
+
+            background: radial-gradient(ellipse at 50% 0%, var(--cafe-claro) 0%, var(--cafe) 50%, var(--cafe-fundo) 100%);
+            background-attachment: fixed;
+
+        }
+
+
+        /* grão fino e brilho suave no fundo */
+
+        body::before {
+
+            content: "";
+
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+
+            opacity: 0.09;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+        }
+
+
+        body::after {
+
+            content: "";
+
+            position: fixed;
+            left: 50%;
+            top: 55%;
+
+            width: min(120vmin, 900px);
+            aspect-ratio: 1;
+
+            transform: translate(-50%, -50%);
+
+            border-radius: 50%;
+
+            background: radial-gradient(circle, rgba(244, 222, 175, 0.14), transparent 65%);
+
+            pointer-events: none;
+            z-index: -1;
+
+        }
+
+
+        .container {
+
+            width: 100%;
+
+            max-width: 540px;
+
+            animation: surge 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+        }
+
+
+        /* =====================================================
+           MARCA
+           ===================================================== */
+
+        .logo {
+
+            text-align: center;
+
+            margin-bottom: 26px;
+
+        }
+
+
+        .logo h1 {
+
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(34px, 10vw, 50px);
+            font-weight: 600;
+            line-height: 1;
+
+            letter-spacing: 0.18em;
+            margin-left: 0.18em;
+
+            color: var(--gelb);
+
+            text-shadow:
+                0 2px 0 var(--cafe-fundo),
+                0 8px 30px rgba(0, 0, 0, 0.6);
+
+        }
+
+
+        .logo h1 span {
+
+            color: var(--caramelo-claro);
+
+        }
+
+
+        .logo p {
+
+            margin-top: 12px;
+
+            color: rgba(244, 222, 175, 0.78);
+
+            font-size: 15px;
+            font-weight: 300;
+
+            letter-spacing: 0.03em;
+
+        }
+
+
+        /* =====================================================
+           CARD
+           ===================================================== */
+
+        .card {
+
+            background: linear-gradient(165deg, var(--creme), var(--gelb) 75%);
+
+            border-radius: 28px;
+
+            padding: 34px 30px 30px;
+
+            box-shadow:
+                0 40px 80px -28px rgba(0, 0, 0, 0.75),
+                inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+        }
+
+
+        /* =====================================================
+           ETAPA
+           ===================================================== */
+
+        .etapa {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            background: rgba(77, 106, 42, 0.16);
+
+            color: #34501f;
+
+            border-radius: 999px;
+
+            padding: 7px 14px;
+
+            font-size: 13px;
+
+            font-weight: 500;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        /* =====================================================
+           TÍTULO
+           ===================================================== */
+
+        h2 {
+
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(32px, 8vw, 40px);
+            font-weight: 600;
+            line-height: 1.05;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .descricao {
+
+            color: var(--texto-secundario);
+
+            font-size: 15px;
+            font-weight: 300;
+
+            line-height: 1.6;
+
+            margin-bottom: 24px;
+
+        }
+
+
+        /* =====================================================
+           INFORMAÇÕES DO COCHO
+           ===================================================== */
+
+        .cocho {
+
+            background: linear-gradient(160deg, #4f2616, #2a120b 75%);
+
+            color: var(--gelb);
+
+            border-radius: 20px;
+
+            padding: 20px 22px;
+
+            margin-bottom: 24px;
+
+            box-shadow:
+                0 18px 36px -20px rgba(30, 12, 7, 0.9),
+                inset 0 1px 0 rgba(244, 222, 175, 0.15);
+
+        }
+
+
+        .cocho-titulo {
+
+            font-size: 14px;
+            font-weight: 400;
+
+            color: rgba(244, 222, 175, 0.68);
+
+            margin-bottom: 6px;
+
+        }
+
+
+        .cocho-nome {
+
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 34px;
+            font-weight: 600;
+            line-height: 1.1;
+
+        }
+
+
+        .cocho-codigo {
+
+            color: var(--caramelo-claro);
+
+            font-size: 15px;
+            font-weight: 500;
+
+            margin-top: 6px;
+
+        }
+
+
+        /* =====================================================
+           USUÁRIO
+           ===================================================== */
+
+        .usuario {
+
+            margin-bottom: 26px;
+
+            padding-left: 16px;
+
+            border-left: 3px solid var(--caramelo);
+
+        }
+
+
+        .usuario-label {
+
+            color: var(--texto-secundario);
+
+            font-size: 14px;
+
+            margin-bottom: 4px;
+
+        }
+
+
+        .usuario-nome {
+
+            font-size: 19px;
+
+            font-weight: 500;
+
+        }
+
+
+        .usuario-email {
+
+            color: var(--texto-secundario);
+
+            font-size: 14px;
+
+            font-weight: 300;
+
+            margin-top: 3px;
+
+            overflow-wrap: anywhere;
+
+        }
+
+
+        /* =====================================================
+           TÍTULO DAS OPÇÕES
+           ===================================================== */
+
+        .titulo-opcoes {
+
+            font-size: 16px;
+
+            font-weight: 500;
+
+            margin-bottom: 14px;
+
+        }
+
+
+        /* =====================================================
+           OPÇÕES
+           ===================================================== */
+
+        .opcao {
+
+            display: block;
+
+            position: relative;
+
+            margin-bottom: 12px;
+
+        }
+
+
+        .opcao input {
+
+            position: absolute;
+
+            opacity: 0;
+
+        }
+
+
+        .opcao-conteudo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 16px;
+
+            border: 1px solid rgba(63, 29, 18, 0.22);
+
+            background: rgba(255, 255, 255, 0.5);
+
+            border-radius: 18px;
+
+            padding: 16px;
+
+            cursor: pointer;
+
+            -webkit-tap-highlight-color: transparent;
+
+            transition: 0.2s ease;
+
+        }
+
+
+        .opcao-conteudo:hover {
+
+            border-color: rgba(63, 29, 18, 0.5);
+
+            background: rgba(255, 255, 255, 0.72);
+
+        }
+
+
+        .opcao input:checked + .opcao-conteudo {
+
+            border-color: var(--cafe);
+
+            background: rgba(255, 255, 255, 0.9);
+
+            box-shadow:
+                0 0 0 1px var(--cafe),
+                0 12px 24px -16px rgba(63, 29, 18, 0.6);
+
+        }
+
+
+        .opcao input:focus-visible + .opcao-conteudo {
+
+            outline: 3px solid var(--caramelo);
+
+            outline-offset: 3px;
+
+        }
+
+
+        /* =====================================================
+           RADIO
+           ===================================================== */
+
+        .radio {
+
+            width: 24px;
+
+            height: 24px;
+
+            min-width: 24px;
+
+            border: 2px solid rgba(63, 29, 18, 0.45);
+
+            border-radius: 50%;
+
+            position: relative;
+
+            transition: 0.2s ease;
+
+        }
+
+
+        .opcao input:checked
+        + .opcao-conteudo
+        .radio {
+
+            border-color: var(--cafe);
+
+        }
+
+
+        .opcao input:checked
+        + .opcao-conteudo
+        .radio::after {
+
+            content: "";
+
+            position: absolute;
+
+            inset: 0;
+
+            margin: auto;
+
+            width: 12px;
+
+            height: 12px;
+
+            background: var(--cafe);
+
+            border-radius: 50%;
+
+        }
+
+
+        /* =====================================================
+           TEXTO DA OPÇÃO
+           ===================================================== */
+
+        .opcao-texto {
+
+            flex: 1;
+
+        }
+
+
+        .opcao-titulo {
+
+            font-weight: 500;
+
+            font-size: 17px;
+
+            margin-bottom: 4px;
+
+        }
+
+
+        .opcao-descricao {
+
+            color: var(--texto-secundario);
+
+            font-size: 14px;
+
+            font-weight: 300;
+
+            line-height: 1.45;
+
+        }
+
+
+        /* =====================================================
+           SELEÇÃO DE DIAS
+           ===================================================== */
+
+        .dias-container {
+
+            display: none;
+
+            margin-top: 10px;
+
+            margin-bottom: 15px;
+
+            background: rgba(63, 29, 18, 0.07);
+
+            border: 1px dashed rgba(63, 29, 18, 0.28);
+
+            border-radius: 18px;
+
+            padding: 16px;
+
+        }
+
+
+        .dias-container.ativo {
+
+            display: block;
+
+            animation: surge 0.35s ease both;
+
+        }
+
+
+        .dias-container label {
+
+            display: block;
+
+            color: var(--cafe);
+
+            font-size: 14px;
+
+            font-weight: 500;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        select {
+
+            width: 100%;
+
+            min-height: 52px;
+
+            padding: 12px 44px 12px 16px;
+
+            border-radius: 14px;
+
+            border: 1px solid rgba(63, 29, 18, 0.22);
+
+            background:
+                rgba(255, 255, 255, 0.7)
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%233F1D12' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+                no-repeat right 16px center;
+
+            color: var(--cafe);
+
+            font-family: inherit;
+
+            font-size: 16px;
+
+            outline: none;
+
+            -webkit-appearance: none;
+            appearance: none;
+
+            cursor: pointer;
+
+            transition: 0.2s ease;
+
+        }
+
+
+        select:focus {
+
+            border-color: var(--cafe);
+
+            box-shadow: 0 0 0 4px rgba(185, 119, 47, 0.25);
+
+        }
+
+
+        /* =====================================================
+           AVISO
+           ===================================================== */
+
+        .aviso {
+
+            display: flex;
+
+            gap: 12px;
+
+            align-items: flex-start;
+
+            background: rgba(63, 29, 18, 0.07);
+
+            border-radius: 16px;
+
+            padding: 14px 16px;
+
+            margin-top: 22px;
+
+            margin-bottom: 24px;
+
+        }
+
+
+        .aviso-icon {
+
+            font-size: 18px;
+
+            line-height: 1.4;
+
+        }
+
+
+        .aviso p {
+
+            color: var(--texto-secundario);
+
+            font-size: 14px;
+
+            font-weight: 300;
+
+            line-height: 1.55;
+
+        }
+
+
+        /* =====================================================
+           BOTÕES
+           ===================================================== */
+
+        .botoes {
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 10px;
+
+        }
+
+
+        .btn {
+
+            width: 100%;
+
+            min-height: 56px;
+
+            border: none;
+
+            border-radius: 14px;
+
+            padding: 14px;
+
+            font-family: inherit;
+
+            font-size: 16px;
+
+            font-weight: 500;
+
+            letter-spacing: 0.03em;
+
+            cursor: pointer;
+
+            -webkit-tap-highlight-color: transparent;
+
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease,
+                background 0.2s ease;
+
+        }
+
+
+        .btn:focus-visible {
+
+            outline: 3px solid var(--caramelo);
+
+            outline-offset: 3px;
+
+        }
+
+
+        .btn-confirmar {
+
+            background: linear-gradient(180deg, var(--cafe-claro), var(--cafe));
+
+            color: var(--gelb);
+
+            box-shadow:
+                inset 0 1px 0 rgba(244, 222, 175, 0.25),
+                0 10px 24px -10px rgba(63, 29, 18, 0.8);
+
+        }
+
+
+        .btn-confirmar:hover {
+
+            transform: translateY(-2px);
+
+            box-shadow:
+                inset 0 1px 0 rgba(244, 222, 175, 0.25),
+                0 16px 30px -10px rgba(63, 29, 18, 0.9);
+
+        }
+
+
+        .btn-confirmar:active {
+
+            transform: translateY(0);
+
+        }
+
+
+        .btn-voltar {
+
+            background: transparent;
+
+            color: var(--cafe);
+
+            border: 1px solid rgba(63, 29, 18, 0.3);
+
+        }
+
+
+        .btn-voltar:hover {
+
+            background: rgba(63, 29, 18, 0.08);
+
+        }
+
+
+        /* =====================================================
+           ANIMAÇÃO
+           ===================================================== */
+
+        @keyframes surge {
+
+            from {
+
+                opacity: 0;
+
+                transform: translateY(20px);
+
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform: translateY(0);
+
+            }
+
+        }
+
+
+        /* =====================================================
+           MOBILE
+           ===================================================== */
+
+        @media (max-width: 480px) {
+
+            body {
+
+                align-items: flex-start;
+
+                padding: 22px 14px 32px;
+
+            }
+
+
+            .card {
+
+                padding: 26px 20px 22px;
+
+                border-radius: 24px;
+
+            }
+
+
+            .cocho-nome {
+
+                font-size: 30px;
+
+            }
+
+        }
+
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .container,
+            .dias-container.ativo {
+
+                animation: none;
+
+            }
+
+            .btn,
+            .opcao-conteudo {
+
+                transition: none;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- =====================================================
+         MARCA
+         ===================================================== -->
+
+    <div class="logo">
+
+        <h1>
+            FERMENT<span>ECH</span>
+        </h1>
+
+        <p>
+            Monitoramento inteligente da fermentação
+        </p>
+
+    </div>
+
+
+    <!-- =====================================================
+         CARD PRINCIPAL
+         ===================================================== -->
+
+    <div class="card">
+
+
+        <!-- ETAPA -->
+
+        <div class="etapa">
+
+            ✓ QR Code identificado
+
+        </div>
+
+
+        <!-- TÍTULO -->
+
+        <h2>
+            Confirmar responsabilidade
+        </h2>
+
+
+        <p class="descricao">
+
+            O QR Code identificou este cocho.
+            Agora confirme se você será responsável pelo
+            acompanhamento da fermentação.
+
+        </p>
+
+
+        <!-- =================================================
+             COCHO
+             ================================================= -->
+
+        <div class="cocho">
+
+            <div class="cocho-titulo">
+
+                Cocho identificado
+
+            </div>
+
+
+            <div class="cocho-nome">
+
+                Fermentech FT-001
+
+            </div>
+
+
+            <div class="cocho-codigo">
+
+                Código: {{ codigo }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             USUÁRIO
+             ================================================= -->
+
+        <div class="usuario">
+
+            <div class="usuario-label">
+
+                Responsável
+
+            </div>
+
+
+            <div class="usuario-nome">
+
+                {{ nome }}
+
+            </div>
+
+
+            <div class="usuario-email">
+
+                {{ email }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             FORMULÁRIO
+             ================================================= -->
+
+        <form
+            method="POST"
+            action="{{ url_for('cocho', codigo=codigo) }}"
+        >
+
+
+            <div class="titulo-opcoes">
+
+                Por quanto tempo você será responsável?
+
+            </div>
+
+
+            <!-- =============================================
+                 OPÇÃO 1
+                 ============================================= -->
+
+            <label class="opcao">
+
+                <input
+                    type="radio"
+                    name="tipo_responsabilidade"
+                    value="periodo"
+                    onchange="mostrarDias()"
+                    checked
+                >
+
+
+                <div class="opcao-conteudo">
+
+
+                    <div class="radio"></div>
+
+
+                    <div class="opcao-texto">
+
+                        <div class="opcao-titulo">
+
+                            Responsável por alguns dias
+
+                        </div>
+
+
+                        <div class="opcao-descricao">
+
+                            Escolha quantos dias consecutivos
+                            você ficará responsável pelo
+                            acompanhamento.
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </label>
+
+
+            <!-- =============================================
+                 QUANTIDADE DE DIAS
+                 ============================================= -->
+
+            <div
+                id="diasContainer"
+                class="dias-container ativo"
+            >
+
+                <label for="dias">
+
+                    Quantidade de dias
+
+                </label>
+
+
+                <select
+                    id="dias"
+                    name="dias"
+                >
+
+                    <option value="1">
+                        1 dia
+                    </option>
+
+                    <option value="2">
+                        2 dias
+                    </option>
+
+                    <option value="3">
+                        3 dias
+                    </option>
+
+                    <option value="4">
+                        4 dias
+                    </option>
+
+                    <option value="5">
+                        5 dias
+                    </option>
+
+                    <option value="6">
+                        6 dias
+                    </option>
+
+                    <option value="7">
+                        7 dias
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- =============================================
+                 OPÇÃO 2
+                 ============================================= -->
+
+            <label class="opcao">
+
+                <input
+                    type="radio"
+                    name="tipo_responsabilidade"
+                    value="fermentacao"
+                    onchange="mostrarDias()"
+                >
+
+
+                <div class="opcao-conteudo">
+
+
+                    <div class="radio"></div>
+
+
+                    <div class="opcao-texto">
+
+                        <div class="opcao-titulo">
+
+                            Responsável pelos 7 dias
+
+                        </div>
+
+
+                        <div class="opcao-descricao">
+
+                            Você ficará responsável pelo
+                            acompanhamento de toda a
+                            fermentação.
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </label>
+
+
+            <!-- =================================================
+                 AVISO
+                 ================================================= -->
+
+            <div class="aviso">
+
+
+                <div class="aviso-icon">
+
+                    ℹ️
+
+                </div>
+
+
+                <p>
+
+                    A responsabilidade será registrada no
+                    FERMENTECH. Durante esse período, você
+                    poderá acompanhar a fermentação e os
+                    dados reais enviados pelos sensores.
+
+                </p>
+
+
+            </div>
+
+
+            <!-- =================================================
+                 BOTÕES
+                 ================================================= -->
+
+            <div class="botoes">
+
+
+                <button
+                    type="submit"
+                    class="btn btn-confirmar"
+                >
+
+                    Confirmar responsabilidade
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn btn-voltar"
+                    onclick="history.back()"
+                >
+
+                    Voltar
+
+                </button>
+
+
+            </div>
+
+
+        </form>
+
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+    function mostrarDias() {
+
+        const opcaoSelecionada =
+            document.querySelector(
+                'input[name="tipo_responsabilidade"]:checked'
+            );
+
+
+        const container =
+            document.getElementById(
+                "diasContainer"
+            );
+
+
+        if (!opcaoSelecionada) {
+
+            return;
+
+        }
+
+
+        if (
+            opcaoSelecionada.value === "periodo"
+        ) {
+
+            container.classList.add(
+                "ativo"
+            );
+
+        } else {
+
+            container.classList.remove(
+                "ativo"
+            );
+
+        }
+
+    }
+
+
+    mostrarDias();
+
+</script>
+
+
+</body>
+
+</html>

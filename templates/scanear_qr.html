@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3F1D12">
+
+    <title>FERMENTECH | Escanear QR Code</title>
+
+    <!-- Conexões antecipadas para carregar mais rápido -->
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <!-- Biblioteca QR Code (defer: não trava a abertura da página) -->
+    <script src="https://unpkg.com/html5-qrcode" defer></script>
+
+    <style>
+        /* ==================================================
+           BASE
+        ================================================== */
+
+        :root {
+            --gelb: #F4DEAF;
+            --creme: #FFF4D9;
+            --cafe: #3F1D12;
+            --cafe-claro: #5A2D1B;
+            --cafe-fundo: #1E0C07;
+            --caramelo: #B9772F;
+            --erro: #8a2515;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            position: relative;
+            min-height: 100vh;
+            min-height: 100svh;
+            padding: 30px 20px calc(50px + env(safe-area-inset-bottom));
+            font-family: "Jost", Arial, Helvetica, sans-serif;
+            color: var(--gelb);
+            background: radial-gradient(ellipse at 50% 0%, var(--cafe-claro) 0%, var(--cafe) 50%, var(--cafe-fundo) 100%);
+            background-attachment: fixed;
+        }
+
+        /* grão fino (estático, sem custo durante a câmera) */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.06;
+            pointer-events: none;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        .pagina {
+            width: 100%;
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        /* ==================================================
+           TOPO
+        ================================================== */
+
+        .topo {
+            text-align: center;
+            margin-bottom: 28px;
+            animation: surge 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .marca {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            margin-left: 0.22em;
+            margin-bottom: 14px;
+            color: rgba(244, 222, 175, 0.85);
+        }
+
+        .topo h1 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(38px, 9vw, 56px);
+            font-weight: 600;
+            line-height: 1.05;
+            margin-bottom: 10px;
+            text-shadow: 0 6px 28px rgba(0, 0, 0, 0.5);
+        }
+
+        .topo p {
+            font-size: 16px;
+            font-weight: 300;
+            line-height: 1.55;
+            color: rgba(244, 222, 175, 0.78);
+        }
+
+        /* ==================================================
+           CÂMERA
+        ================================================== */
+
+        .camera-card {
+            width: 100%;
+            padding: 18px;
+            border-radius: 28px;
+            background: rgba(42, 18, 11, 0.88);
+            border: 1px solid rgba(244, 222, 175, 0.18);
+            box-shadow:
+                0 30px 60px -30px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(244, 222, 175, 0.12);
+            animation: surge 0.7s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .camera-titulo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+            padding: 0 4px;
+        }
+
+        .camera-titulo h2 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 26px;
+            font-weight: 600;
+        }
+
+        .status-camera {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(244, 222, 175, 0.1);
+            font-size: 13px;
+            color: rgba(244, 222, 175, 0.85);
+        }
+
+        .status-ponto {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #55d68a;
+            animation: pulsa 2s ease-in-out infinite;
+        }
+
+        /* moldura do visor com cantos */
+
+        .visor {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            background: #000;
+        }
+
+        .visor::before,
+        .visor::after {
+            content: "";
+            position: absolute;
+            z-index: 2;
+            width: 34px;
+            height: 34px;
+            border: 3px solid var(--gelb);
+            pointer-events: none;
+        }
+
+        .visor::before {
+            top: 14px;
+            left: 14px;
+            border-right: 0;
+            border-bottom: 0;
+            border-top-left-radius: 10px;
+        }
+
+        .visor::after {
+            right: 14px;
+            bottom: 14px;
+            border-left: 0;
+            border-top: 0;
+            border-bottom-right-radius: 10px;
+        }
+
+        #leitor {
+            width: 100%;
+            min-height: 280px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /*
+         * IMPORTANTE:
+         * Não usamos scaleX(-1). Assim a câmera não fica espelhada.
+         */
+        #leitor video {
+            width: 100% !important;
+            height: auto !important;
+            display: block;
+            object-fit: cover;
+            transform: none !important;
+            -webkit-transform: none !important;
+        }
+
+        .mensagem-camera {
+            text-align: center;
+            padding: 16px 6px 4px;
+            font-size: 15px;
+            font-weight: 300;
+            line-height: 1.5;
+            color: rgba(244, 222, 175, 0.8);
+        }
+
+        /* ==================================================
+           BOTÕES
+        ================================================== */
+
+        .botoes-camera {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        button {
+            min-height: 52px;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:focus-visible,
+        .campo:focus-visible,
+        .voltar:focus-visible {
+            outline: 3px solid var(--caramelo);
+            outline-offset: 3px;
+        }
+
+        .botao-scan {
+            background: linear-gradient(165deg, var(--creme), var(--gelb));
+            color: var(--cafe);
+            box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.8);
+        }
+
+        .botao-fechar {
+            background: rgba(255, 150, 130, 0.12);
+            border: 1px solid rgba(255, 170, 150, 0.35);
+            color: #ffb8a8;
+        }
+
+        .botao-scan:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ==================================================
+           DIVISOR
+        ================================================== */
+
+        .divisor {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 30px 0;
+            font-size: 14px;
+            font-weight: 300;
+            color: rgba(244, 222, 175, 0.62);
+        }
+
+        .divisor::before,
+        .divisor::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: rgba(244, 222, 175, 0.18);
+        }
+
+        /* ==================================================
+           CÓDIGO MANUAL
+        ================================================== */
+
+        .manual {
+            padding: 28px 24px;
+            border-radius: 26px;
+            background: linear-gradient(165deg, var(--creme), var(--gelb) 75%);
+            color: var(--cafe);
+            box-shadow:
+                0 36px 70px -30px rgba(0, 0, 0, 0.75),
+                inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            animation: surge 0.7s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .manual h2 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 30px;
+            font-weight: 600;
+            line-height: 1.1;
+            margin-bottom: 8px;
+        }
+
+        .manual p {
+            font-size: 15px;
+            font-weight: 300;
+            line-height: 1.55;
+            color: rgba(63, 29, 18, 0.72);
+            margin-bottom: 18px;
+        }
+
+        .campo {
+            width: 100%;
+            min-height: 54px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(63, 29, 18, 0.22);
+            outline: none;
+            background: rgba(255, 255, 255, 0.55);
+            color: var(--cafe);
+            font-family: inherit;
+            font-size: 16px;
+            transition: 0.2s ease;
+        }
+
+        .campo::placeholder {
+            color: rgba(63, 29, 18, 0.42);
+        }
+
+        .campo:focus {
+            border-color: var(--cafe);
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: 0 0 0 4px rgba(185, 119, 47, 0.25);
+        }
+
+        .botao-continuar {
+            width: 100%;
+            margin-top: 12px;
+            background: linear-gradient(180deg, var(--cafe-claro), var(--cafe));
+            color: var(--gelb);
+            box-shadow:
+                inset 0 1px 0 rgba(244, 222, 175, 0.25),
+                0 10px 24px -12px rgba(63, 29, 18, 0.85);
+        }
+
+        /* ==================================================
+           ERRO
+        ================================================== */
+
+        .erro {
+            display: none;
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: #F8DDD3;
+            border: 1px solid #E3A898;
+            color: var(--erro);
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        /* ==================================================
+           VOLTAR
+        ================================================== */
+
+        .voltar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            min-height: 46px;
+            margin: 26px auto 0;
+            padding: 10px 26px;
+            border-radius: 999px;
+            border: 1px solid rgba(244, 222, 175, 0.28);
+            color: var(--gelb);
+            text-decoration: none;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+
+        .voltar:hover {
+            color: var(--cafe);
+            background: var(--gelb);
+            border-color: var(--gelb);
+        }
+
+        /* ==================================================
+           ANIMAÇÕES
+        ================================================== */
+
+        @keyframes surge {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulsa {
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* ==================================================
+           MOBILE
+        ================================================== */
+
+        @media (max-width: 600px) {
+            body {
+                padding: 22px 14px calc(40px + env(safe-area-inset-bottom));
+            }
+
+            .camera-card {
+                padding: 13px;
+                border-radius: 24px;
+            }
+
+            .botoes-camera {
+                grid-template-columns: 1fr;
+            }
+
+            .manual {
+                padding: 24px 18px;
+            }
+
+            #leitor {
+                min-height: 240px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .topo,
+            .camera-card,
+            .manual {
+                animation: none;
+            }
+
+            .status-ponto {
+                animation: none;
+            }
+
+            button {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <main class="pagina">
+
+        <!-- TOPO -->
+
+        <header class="topo">
+            <div class="marca">FERMENTECH</div>
+
+            <h1>Escanear QR Code</h1>
+
+            <p>
+                Aponte a câmera para o QR Code
+                do cocho FERMENTECH.
+            </p>
+        </header>
+
+
+        <!-- CÂMERA -->
+
+        <section class="camera-card">
+
+            <div class="camera-titulo">
+                <h2>Câmera</h2>
+
+                <div class="status-camera" id="statusCamera">
+                    <span class="status-ponto" id="statusPonto"></span>
+                    <span id="textoStatus">Iniciando...</span>
+                </div>
+            </div>
+
+            <!-- A biblioteca cria o vídeo dentro de #leitor -->
+            <div class="visor">
+                <div id="leitor"></div>
+            </div>
+
+            <div class="mensagem-camera" id="mensagemCamera">
+                Iniciando a câmera...
+            </div>
+
+            <div class="botoes-camera">
+                <button
+                    type="button"
+                    class="botao-scan"
+                    id="botaoScan"
+                    onclick="iniciarCamera()"
+                >
+                    📷 Escanear QR Code
+                </button>
+
+                <button
+                    type="button"
+                    class="botao-fechar"
+                    id="botaoFechar"
+                    onclick="fecharCamera()"
+                >
+                    ✕ Fechar câmera
+                </button>
+            </div>
+
+        </section>
+
+
+        <div class="divisor">
+            ou digite o código manualmente
+        </div>
+
+
+        <!-- CÓDIGO MANUAL -->
+
+        <section class="manual">
+
+            <h2>Digitar código</h2>
+
+            <p>
+                Se não puder utilizar a câmera,
+                informe o código do QR Code do cocho.
+            </p>
+
+            <input
+                type="text"
+                id="codigoManual"
+                class="campo"
+                placeholder="Ex.: FERMENTECH-FT-001"
+                autocomplete="off"
+                autocapitalize="characters"
+            >
+
+            <button
+                type="button"
+                class="botao-continuar"
+                onclick="continuarManual()"
+            >
+                Continuar
+            </button>
+
+            <div class="erro" id="mensagemErro">
+                Código inválido.
+            </div>
+
+        </section>
+
+
+        <!-- VOLTAR -->
+
+        <a
+            href="/painel/admin"
+            class="voltar"
+            id="linkVoltar"
+        >
+            ← Voltar
+        </a>
+
+    </main>
+
+
+    <script>
+
+        /* ==================================================
+           ESTADO E ELEMENTOS
+        ================================================== */
+
+        let leitorQr = null;
+        let cameraAberta = false;
+        let processandoQr = false;
+
+        const textoStatus    = document.getElementById("textoStatus");
+        const statusPonto    = document.getElementById("statusPonto");
+        const mensagemCamera = document.getElementById("mensagemCamera");
+        const botaoScan      = document.getElementById("botaoScan");
+        const mensagemErro   = document.getElementById("mensagemErro");
+        const codigoManual   = document.getElementById("codigoManual");
+
+        /* Configuração do leitor: mais quadros por segundo e área maior de leitura */
+        const CONFIG_LEITOR = {
+            fps: 15,
+            qrbox: { width: 280, height: 280 },
+            aspectRatio: 1.0
+        };
+
+        /* Prefixo do QR Code e formato do cocho (ex.: FT-001) */
+        const PREFIXO = "FERMENTECH-";
+        const FORMATO_COCHO = /^FT-\d{3}$/;
+
+
+        /* ==================================================
+           APOIO
+        ================================================== */
+
+        function mostrarStatus(texto, mensagem, cor) {
+            textoStatus.textContent = texto;
+            mensagemCamera.textContent = mensagem;
+            statusPonto.style.background = cor;
+        }
+
+        function irParaCocho(codigoCocho) {
+            /* O Flask abre a tela de confirmação de responsabilidade */
+            window.location.href = "/cocho/" + encodeURIComponent(codigoCocho);
+        }
+
+        function mostrarErro(texto) {
+            mensagemErro.textContent = texto;
+            mensagemErro.style.display = "block";
+        }
+
+
+        /* ==================================================
+           CÂMERA
+        ================================================== */
+
+        /* QR encontrado: processa uma única vez */
+        function aoEncontrarQr(codigo) {
+            if (processandoQr) {
+                return;
+            }
+
+            processandoQr = true;
+            processarCodigo(codigo);
+        }
+
+        /* Abre o leitor com a câmera pedida ("environment" = traseira, "user" = frontal) */
+        async function abrirLeitor(facingMode) {
+            leitorQr = new Html5Qrcode("leitor");
+
+            await leitorQr.start(
+                { facingMode: facingMode },
+                CONFIG_LEITOR,
+                aoEncontrarQr,
+                /* Falha normal de leitura: não mostramos, pois nem todo quadro tem QR */
+                () => {}
+            );
+        }
+
+        async function iniciarCamera() {
+
+            /* Impede abrir duas câmeras ao mesmo tempo */
+            if (cameraAberta) {
+                return;
+            }
+
+            processandoQr = false;
+            textoStatus.textContent = "Iniciando...";
+            mensagemCamera.textContent = "Solicitando acesso à câmera...";
+            botaoScan.disabled = true;
+
+            try {
+
+                /* Primeira tentativa: câmera traseira */
+                await abrirLeitor("environment");
+
+            } catch (erro) {
+
+                console.error("Erro ao iniciar câmera:", erro);
+
+                /* Limpa a tentativa anterior */
+                try {
+                    if (leitorQr) {
+                        await leitorQr.clear();
+                    }
+                } catch (e) {}
+
+                leitorQr = null;
+
+                try {
+
+                    /* Segunda tentativa: câmera frontal */
+                    await abrirLeitor("user");
+
+                } catch (erroFinal) {
+
+                    console.error("Não foi possível acessar a câmera:", erroFinal);
+
+                    mostrarStatus(
+                        "Câmera indisponível",
+                        "Não foi possível acessar a câmera. Verifique a permissão do navegador.",
+                        "#ff8f84"
+                    );
+
+                    botaoScan.disabled = false;
+                    return;
+                }
+            }
+
+            cameraAberta = true;
+
+            mostrarStatus(
+                "Câmera ativa",
+                "Aponte a câmera para o QR Code do cocho.",
+                "#55d68a"
+            );
+        }
+
+        async function fecharCamera() {
+
+            if (!leitorQr) {
+                cameraAberta = false;
+                return;
+            }
+
+            try {
+                if (cameraAberta) {
+                    await leitorQr.stop();
+                }
+            } catch (erro) {
+                console.error("Erro ao fechar câmera:", erro);
+            }
+
+            try {
+                await leitorQr.clear();
+            } catch (erro) {}
+
+            leitorQr = null;
+            cameraAberta = false;
+            processandoQr = false;
+
+            mostrarStatus(
+                "Câmera fechada",
+                'A câmera está fechada. Clique em "Escanear QR Code" para abrir novamente.',
+                "#888"
+            );
+
+            botaoScan.disabled = false;
+        }
+
+
+        /* ==================================================
+           PROCESSAR QR CODE
+           Formato esperado: FERMENTECH-FT-001
+        ================================================== */
+
+        async function processarCodigo(codigo) {
+
+            codigo = String(codigo || "").trim().toUpperCase();
+
+            console.log("QR Code encontrado:", codigo);
+
+            if (!codigo.startsWith(PREFIXO)) {
+                processandoQr = false;
+                mensagemCamera.textContent =
+                    "QR Code encontrado, mas ele não pertence ao FERMENTECH.";
+                return;
+            }
+
+            /* Retira o prefixo, deixando por exemplo: FT-001 */
+            const codigoCocho = codigo.replace(PREFIXO, "");
+
+            if (!FORMATO_COCHO.test(codigoCocho)) {
+                processandoQr = false;
+                mensagemCamera.textContent =
+                    "QR Code inválido para um cocho FERMENTECH.";
+                return;
+            }
+
+            await fecharCamera();
+
+            /* Vai para: /cocho/FT-001 */
+            irParaCocho(codigoCocho);
+        }
+
+
+        /* ==================================================
+           CÓDIGO MANUAL
+           Aceita FERMENTECH-FT-001 ou apenas FT-001
+        ================================================== */
+
+        function continuarManual() {
+
+            let codigo = codigoManual.value.trim().toUpperCase();
+
+            mensagemErro.style.display = "none";
+
+            if (!codigo) {
+                mostrarErro("Digite o código do cocho.");
+                return;
+            }
+
+            if (codigo.startsWith(PREFIXO)) {
+                codigo = codigo.replace(PREFIXO, "");
+            }
+
+            if (!FORMATO_COCHO.test(codigo)) {
+                mostrarErro("Código inválido. Exemplo: FERMENTECH-FT-001");
+                return;
+            }
+
+            /* Mesma rota utilizada pelo QR Code */
+            irParaCocho(codigo);
+        }
+
+        codigoManual.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                continuarManual();
+            }
+        });
+
+
+        /* ==================================================
+           CICLO DE VIDA
+        ================================================== */
+
+        /* Inicia a câmera automaticamente */
+        window.addEventListener("load", function () {
+            iniciarCamera();
+        });
+
+        /* Encerra a câmera ao sair da página */
+        window.addEventListener("beforeunload", function () {
+            if (leitorQr && cameraAberta) {
+                leitorQr.stop().catch(() => {});
+            }
+        });
+
+    </script>
+
+</body>
+
+</html>

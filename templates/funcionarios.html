@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3F1D12">
+
+    <title>Funcionários | FERMENTECH</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --gelb: #F4DEAF;
+            --creme: #FFF4D9;
+            --cafe: #3F1D12;
+            --cafe-claro: #5A2D1B;
+            --cafe-fundo: #1E0C07;
+            --caramelo: #B9772F;
+            --oliva: #4d6a2a;
+            --oliva-escuro: #3a5220;
+            --vermelho: #8a2515;
+            --vermelho-escuro: #6e1b0e;
+            --texto: #3F1D12;
+            --texto-secundario: rgba(63, 29, 18, 0.72);
+            --borda: rgba(63, 29, 18, 0.14);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            position: relative;
+            isolation: isolate;
+            min-height: 100vh;
+            min-height: 100svh;
+            font-family: "Jost", Arial, Helvetica, sans-serif;
+            color: var(--gelb);
+            background: radial-gradient(ellipse at 50% 0%, var(--cafe-claro) 0%, var(--cafe) 50%, var(--cafe-fundo) 100%);
+            background-attachment: fixed;
+        }
+
+        /* grão fino e brilho suave no fundo */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.09;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            left: 50%;
+            top: 30%;
+            width: min(120vmin, 900px);
+            aspect-ratio: 1;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(244, 222, 175, 0.12), transparent 65%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* ==================================================
+           TOPO
+        ================================================== */
+
+        header {
+            padding: 20px 6%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(244, 222, 175, 0.14);
+            background: rgba(30, 12, 7, 0.55);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        .marca {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 28px;
+            font-weight: 600;
+            line-height: 1;
+            letter-spacing: 0.18em;
+            color: var(--gelb);
+        }
+
+        .marca span {
+            color: #E2A964;
+        }
+
+        .usuario {
+            font-size: 14px;
+            font-weight: 300;
+            color: rgba(244, 222, 175, 0.85);
+        }
+
+        /* ==================================================
+           CONTEÚDO
+        ================================================== */
+
+        main {
+            width: min(1150px, 92%);
+            margin: 48px auto 20px;
+        }
+
+        .cabecalho-pagina {
+            margin-bottom: 32px;
+        }
+
+        .cabecalho-pagina h1 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(36px, 6vw, 58px);
+            font-weight: 600;
+            line-height: 1.05;
+            margin-bottom: 12px;
+            color: var(--gelb);
+            text-shadow: 0 6px 28px rgba(0, 0, 0, 0.5);
+        }
+
+        .cabecalho-pagina p {
+            max-width: 640px;
+            font-size: 16px;
+            font-weight: 300;
+            line-height: 1.65;
+            color: rgba(244, 222, 175, 0.8);
+        }
+
+        /* ==================================================
+           CARTÕES
+        ================================================== */
+
+        .cartao {
+            background: linear-gradient(165deg, var(--creme), var(--gelb) 75%);
+            color: var(--texto);
+            border-radius: 26px;
+            padding: 32px;
+            margin-bottom: 25px;
+            box-shadow:
+                0 36px 70px -30px rgba(0, 0, 0, 0.75),
+                inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .cartao h2 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 30px;
+            font-weight: 600;
+            line-height: 1.1;
+            margin-bottom: 8px;
+            color: var(--cafe);
+        }
+
+        .descricao {
+            font-size: 15px;
+            font-weight: 300;
+            color: var(--texto-secundario);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        /* ==================================================
+           FORMULÁRIO
+        ================================================== */
+
+        .formulario {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .campo {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .campo label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--cafe);
+        }
+
+        .campo input {
+            width: 100%;
+            min-height: 52px;
+            padding: 12px 16px;
+            border: 1px solid rgba(63, 29, 18, 0.22);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.55);
+            font-family: inherit;
+            font-size: 16px;
+            color: var(--texto);
+            outline: none;
+            transition: 0.2s ease;
+        }
+
+        .campo input::placeholder {
+            color: rgba(63, 29, 18, 0.42);
+        }
+
+        .campo input:focus {
+            border-color: var(--cafe);
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: 0 0 0 4px rgba(185, 119, 47, 0.25);
+        }
+
+        .campo input:-webkit-autofill {
+            -webkit-text-fill-color: var(--cafe);
+            box-shadow: 0 0 0 100px #fff7e2 inset;
+        }
+
+        .campo-completo {
+            grid-column: 1 / -1;
+        }
+
+        .ajuda {
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.55;
+            color: var(--texto-secundario);
+        }
+
+        /* ==================================================
+           BOTÕES
+        ================================================== */
+
+        .botao {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 46px;
+            padding: 11px 22px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(180deg, var(--cafe-claro), var(--cafe));
+            color: var(--gelb);
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow:
+                inset 0 1px 0 rgba(244, 222, 175, 0.25),
+                0 10px 24px -12px rgba(63, 29, 18, 0.85);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+
+        .formulario .botao {
+            min-height: 52px;
+            padding: 12px 28px;
+            font-size: 16px;
+        }
+
+        .botao:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                inset 0 1px 0 rgba(244, 222, 175, 0.25),
+                0 16px 30px -12px rgba(63, 29, 18, 0.9);
+        }
+
+        .botao:active {
+            transform: translateY(0);
+        }
+
+        .botao-secundario {
+            background: rgba(63, 29, 18, 0.1);
+            color: var(--cafe);
+            box-shadow: inset 0 0 0 1px rgba(63, 29, 18, 0.22);
+        }
+
+        .botao-perigo {
+            background: linear-gradient(180deg, var(--vermelho), var(--vermelho-escuro));
+            color: var(--creme);
+        }
+
+        .botao-reativar {
+            background: linear-gradient(180deg, var(--oliva), var(--oliva-escuro));
+            color: var(--creme);
+        }
+
+        .botao:focus-visible,
+        .link-voltar:focus-visible,
+        summary:focus-visible {
+            outline: 3px solid var(--caramelo);
+            outline-offset: 3px;
+        }
+
+        /* ==================================================
+           MENSAGENS
+        ================================================== */
+
+        .mensagem {
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            border-radius: 14px;
+            line-height: 1.5;
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        .mensagem.sucesso {
+            background: #EAF0D2;
+            color: #34501f;
+            border: 1px solid #B9C98F;
+        }
+
+        .mensagem.erro,
+        .mensagem.danger {
+            background: #F8DDD3;
+            color: #8a2515;
+            border: 1px solid #E3A898;
+        }
+
+        .mensagem.warning {
+            background: #F6E7B8;
+            color: #6b4a00;
+            border: 1px solid #DDBF6E;
+        }
+
+        /* ==================================================
+           LISTA
+        ================================================== */
+
+        .cabecalho-lista {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .cabecalho-lista h2 {
+            margin-bottom: 0;
+        }
+
+        .contador {
+            color: var(--cafe);
+            font-size: 14px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(63, 29, 18, 0.09);
+        }
+
+        .tabela-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 16px 14px;
+            border-bottom: 1px solid var(--borda);
+            font-size: 15px;
+            vertical-align: middle;
+        }
+
+        th {
+            color: var(--texto-secundario);
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            border-bottom: 2px solid rgba(63, 29, 18, 0.25);
+        }
+
+        td {
+            font-weight: 400;
+        }
+
+        tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(63, 29, 18, 0.05);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(77, 106, 42, 0.16);
+            color: #34501f;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .status::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--oliva);
+        }
+
+        .status.bloqueado {
+            background: rgba(138, 37, 21, 0.13);
+            color: var(--vermelho);
+        }
+
+        .status.bloqueado::before {
+            background: #b3361f;
+        }
+
+        /* ==================================================
+           AÇÕES DA TABELA
+        ================================================== */
+
+        .acoes {
+            min-width: 190px;
+        }
+
+        .acoes-botoes {
+            display: flex;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .editar {
+            min-width: 0;
+        }
+
+        .editar summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 46px;
+            padding: 11px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(63, 29, 18, 0.28);
+            color: var(--cafe);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            list-style: none;
+            transition: background 0.2s ease;
+        }
+
+        .editar summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .editar summary::after {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg) translateY(-2px);
+            transition: transform 0.2s ease;
+        }
+
+        .editar summary:hover,
+        .editar[open] summary {
+            background: rgba(63, 29, 18, 0.09);
+        }
+
+        .editar[open] summary::after {
+            transform: rotate(225deg);
+        }
+
+        .formulario-edicao {
+            display: grid;
+            gap: 14px;
+            min-width: 250px;
+            max-width: 350px;
+            margin-top: 10px;
+            padding: 18px;
+            border: 1px solid rgba(63, 29, 18, 0.18);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .formulario-edicao .campo {
+            gap: 6px;
+        }
+
+        .formulario-edicao .campo label {
+            font-size: 13px;
+        }
+
+        .formulario-edicao .campo input {
+            min-height: 46px;
+            padding: 10px 14px;
+            font-size: 16px;
+        }
+
+        .vazio {
+            padding: 34px 15px;
+            text-align: center;
+            color: var(--texto-secundario);
+            font-weight: 300;
+            line-height: 1.7;
+        }
+
+        /* ==================================================
+           NAVEGAÇÃO E RODAPÉ
+        ================================================== */
+
+        .rodape-acoes {
+            margin-top: 8px;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .link-voltar {
+            display: inline-flex;
+            align-items: center;
+            min-height: 46px;
+            padding: 10px 24px;
+            border-radius: 999px;
+            border: 1px solid rgba(244, 222, 175, 0.28);
+            color: var(--gelb);
+            font-weight: 400;
+            font-size: 15px;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .link-voltar:hover {
+            color: var(--cafe);
+            background: var(--gelb);
+            border-color: var(--gelb);
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 15px 36px;
+            color: rgba(244, 222, 175, 0.6);
+            font-size: 13px;
+            font-weight: 300;
+            letter-spacing: 0.02em;
+        }
+
+        /* ==================================================
+           ANIMAÇÃO
+        ================================================== */
+
+        .cabecalho-pagina,
+        .cartao {
+            animation: surge 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .cartao:nth-of-type(2) { animation-delay: 0.1s; }
+        .cartao:nth-of-type(3) { animation-delay: 0.2s; }
+
+        @keyframes surge {
+            from {
+                opacity: 0;
+                transform: translateY(22px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ==================================================
+           MOBILE
+        ================================================== */
+
+        @media (max-width: 650px) {
+            header {
+                padding: 18px 5%;
+            }
+
+            .marca {
+                font-size: 24px;
+            }
+
+            main {
+                margin-top: 32px;
+            }
+
+            .cartao {
+                padding: 22px 19px;
+                border-radius: 22px;
+            }
+
+            .formulario {
+                grid-template-columns: 1fr;
+            }
+
+            .campo-completo {
+                grid-column: auto;
+            }
+
+            .botao {
+                width: 100%;
+            }
+
+            th,
+            td {
+                padding: 13px 10px;
+            }
+
+            .acoes-botoes {
+                min-width: 145px;
+            }
+
+            .formulario-edicao {
+                min-width: 220px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .cabecalho-pagina,
+            .cartao {
+                animation: none;
+            }
+
+            .botao,
+            .editar summary::after {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="marca">FERMEN<span>TECH</span></div>
+
+        <div class="usuario">
+            Administrador: {{ nome or "Usuário" }}
+        </div>
+    </header>
+
+    <main>
+
+        <section class="cabecalho-pagina">
+            <h1>Gestão de funcionários</h1>
+
+            <p>
+                Cadastre funcionários, edite seus dados e controle o acesso
+                às contas do sistema FERMENTECH.
+            </p>
+        </section>
+
+        <!-- MENSAGENS DO FLASK -->
+
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+            {% if mensagens %}
+                {% for categoria, mensagem in mensagens %}
+                    <div
+                        class="mensagem {{ categoria }}"
+                        role="status"
+                        aria-live="polite"
+                    >
+                        {{ mensagem }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- CADASTRO DE FUNCIONÁRIO -->
+
+        <section class="cartao">
+
+            <h2>Cadastrar funcionário</h2>
+
+            <p class="descricao">
+                Preencha os dados abaixo. O sistema tentará enviar uma senha
+                temporária para o e-mail informado. O cadastro depende do
+                sucesso do envio conforme a configuração atual do sistema.
+            </p>
+
+            <form
+                class="formulario"
+                action="{{ url_for('cadastrar_funcionario') }}"
+                method="POST"
+            >
+
+                <div class="campo">
+                    <label for="nome">Nome completo</label>
+
+                    <input
+                        type="text"
+                        id="nome"
+                        name="nome"
+                        placeholder="Digite o nome completo"
+                        maxlength="120"
+                        autocomplete="name"
+                        required
+                    >
+                </div>
+
+                <div class="campo">
+                    <label for="email">E-mail pessoal</label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="funcionario@exemplo.com"
+                        maxlength="254"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
+
+                <div class="campo campo-completo">
+                    <p class="ajuda">
+                        Confira o endereço de e-mail antes de cadastrar.
+                        A senha temporária será enviada para esse endereço
+                        caso o serviço de e-mail conclua o envio.
+                    </p>
+                </div>
+
+                <div class="campo campo-completo">
+                    <button class="botao" type="submit">
+                        Cadastrar funcionário
+                    </button>
+                </div>
+
+            </form>
+
+        </section>
+
+        <!-- LISTA E GERENCIAMENTO DE FUNCIONÁRIOS -->
+
+        <section class="cartao">
+
+            <div class="cabecalho-lista">
+                <h2>Funcionários cadastrados</h2>
+
+                <span class="contador">
+                    Total de funcionários: {{ funcionarios|length }}
+                </span>
+            </div>
+
+            <p class="descricao">
+                Use “Editar dados” para alterar o nome ou o e-mail.
+                O botão “Bloquear” suspende o acesso sem apagar o cadastro.
+                Se necessário, você poderá reativar a conta depois.
+            </p>
+
+            <div class="tabela-container">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>E-mail</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for funcionario in funcionarios %}
+                            <tr>
+                                <td>
+                                    {{ funcionario.nome }}
+                                </td>
+
+                                <td>
+                                    {{ funcionario.email }}
+                                </td>
+
+                                <td>
+                                    {% if funcionario.status == "Ativo" %}
+                                        <span class="status">
+                                            Ativo
+                                        </span>
+                                    {% else %}
+                                        <span class="status bloqueado">
+                                            {{ funcionario.status }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="acoes">
+
+                                    <div class="acoes-botoes">
+
+                                        <!-- BLOCO PARA EDITAR NOME E E-MAIL -->
+
+                                        <details class="editar">
+                                            <summary>Editar dados</summary>
+
+                                            <form
+                                                class="formulario-edicao"
+                                                action="{{ url_for('editar_funcionario', usuario_id=funcionario.id) }}"
+                                                method="POST"
+                                            >
+
+                                                <div class="campo">
+                                                    <label for="nome-{{ funcionario.id }}">
+                                                        Nome completo
+                                                    </label>
+
+                                                    <input
+                                                        type="text"
+                                                        id="nome-{{ funcionario.id }}"
+                                                        name="nome"
+                                                        value="{{ funcionario.nome }}"
+                                                        maxlength="120"
+                                                        autocomplete="off"
+                                                        required
+                                                    >
+                                                </div>
+
+                                                <div class="campo">
+                                                    <label for="email-{{ funcionario.id }}">
+                                                        E-mail
+                                                    </label>
+
+                                                    <input
+                                                        type="email"
+                                                        id="email-{{ funcionario.id }}"
+                                                        name="email"
+                                                        value="{{ funcionario.email }}"
+                                                        maxlength="254"
+                                                        autocomplete="off"
+                                                        required
+                                                    >
+                                                </div>
+
+                                                <button
+                                                    class="botao"
+                                                    type="submit"
+                                                >
+                                                    Salvar alterações
+                                                </button>
+
+                                            </form>
+                                        </details>
+
+                                        <!-- BLOQUEAR OU REATIVAR -->
+
+                                        <form
+                                            action="{{ url_for('bloquear_funcionario', usuario_id=funcionario.id) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('{% if funcionario.status == 'Ativo' %}Tem certeza de que deseja bloquear este funcionário? Ele perderá o acesso à conta.{% else %}Deseja reativar este funcionário?{% endif %}');"
+                                        >
+
+                                            {% if funcionario.status == "Ativo" %}
+                                                <button
+                                                    class="botao botao-perigo"
+                                                    type="submit"
+                                                >
+                                                    Bloquear
+                                                </button>
+                                            {% else %}
+                                                <button
+                                                    class="botao botao-reativar"
+                                                    type="submit"
+                                                >
+                                                    Reativar
+                                                </button>
+                                            {% endif %}
+
+                                        </form>
+
+                                    </div>
+
+                                </td>
+                            </tr>
+
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="vazio">
+                                    Nenhum funcionário cadastrado.
+                                    <br>
+                                    Utilize o formulário acima para cadastrar
+                                    o primeiro funcionário.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+
+        </section>
+
+        <!-- VOLTAR AO PAINEL -->
+
+        <div class="rodape-acoes">
+            <a
+                class="link-voltar"
+                href="{{ url_for('painel_admin') }}"
+            >
+                ← Voltar ao painel administrativo
+            </a>
+        </div>
+
+    </main>
+
+    <footer>
+        FERMENTECH — Sistema de gestão da fermentação
+    </footer>
+
+</body>
+</html>

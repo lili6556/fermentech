@@ -1,0 +1,1132 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Histórico da Fermentação | FERMENTECH</title>
+
+    <style>
+        :root {
+            --verde: #0f766e;
+            --verde-claro: #ccfbf1;
+            --fundo: #f4f7f6;
+            --texto: #1f2937;
+            --cinza: #64748b;
+            --borda: #e2e8f0;
+            --vermelho: #dc2626;
+            --vermelho-claro: #fee2e2;
+            --amarelo: #a16207;
+            --amarelo-claro: #fef3c7;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--fundo);
+            color: var(--texto);
+        }
+
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--borda);
+            padding: 18px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .marca {
+            color: var(--verde);
+            font-size: 23px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .submarca {
+            color: var(--cinza);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .voltar {
+            text-decoration: none;
+            color: var(--verde);
+            font-weight: bold;
+            padding: 10px 14px;
+            border: 1px solid var(--borda);
+            border-radius: 9px;
+        }
+
+        .voltar:hover {
+            background: var(--verde-claro);
+        }
+
+        main {
+            width: min(1200px, 92%);
+            margin: 30px auto;
+        }
+
+        .titulo-pagina {
+            margin-bottom: 24px;
+        }
+
+        .titulo-pagina h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .titulo-pagina p {
+            margin: 0;
+            color: var(--cinza);
+            line-height: 1.5;
+        }
+
+        .painel {
+            display: grid;
+            grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.4fr);
+            gap: 22px;
+            align-items: start;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid var(--borda);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+            min-width: 0;
+        }
+
+        .card h2 {
+            font-size: 19px;
+            margin: 0 0 8px;
+        }
+
+        .descricao {
+            color: var(--cinza);
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 0 0 20px;
+        }
+
+        .mes-navegacao {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .mes-navegacao h3 {
+            margin: 0;
+            font-size: 17px;
+            text-align: center;
+            text-transform: capitalize;
+        }
+
+        .botao-mes {
+            border: 1px solid var(--borda);
+            background: #ffffff;
+            color: var(--texto);
+            width: 38px;
+            height: 38px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-size: 21px;
+        }
+
+        .botao-mes:hover {
+            background: var(--verde-claro);
+            color: var(--verde);
+        }
+
+        .semana,
+        .calendario {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 5px;
+        }
+
+        .semana div {
+            text-align: center;
+            color: var(--cinza);
+            font-size: 12px;
+            font-weight: bold;
+            padding: 8px 0;
+        }
+
+        .dia {
+            min-width: 0;
+            aspect-ratio: 1 / 1;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            position: relative;
+            background: #f8fafc;
+            color: var(--texto);
+            font-size: 13px;
+        }
+
+        button.dia {
+            cursor: pointer;
+        }
+
+        button.dia:hover {
+            border-color: var(--verde);
+        }
+
+        .dia.vazio {
+            background: transparent;
+        }
+
+        .dia.sem-registro {
+            color: #94a3b8;
+            background: #ffffff;
+            border-color: #f1f5f9;
+        }
+
+        .dia.com-registro {
+            background: var(--verde-claro);
+            color: #115e59;
+        }
+
+        .dia.com-critico {
+            background: var(--vermelho-claro);
+            color: #991b1b;
+        }
+
+        .dia.selecionado {
+            background: var(--verde);
+            color: #ffffff;
+            border-color: var(--verde);
+            box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.18);
+        }
+
+        .marcador {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .legenda {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .legenda-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--cinza);
+        }
+
+        .legenda-cor {
+            width: 11px;
+            height: 11px;
+            border-radius: 3px;
+        }
+
+        .resumo-mensal {
+            margin-top: 22px;
+            padding: 15px;
+            background: #f8fafc;
+            border: 1px solid var(--borda);
+            border-radius: 11px;
+        }
+
+        .resumo-mensal h3 {
+            margin: 0 0 12px;
+            font-size: 14px;
+        }
+
+        .resumo-mensal p {
+            margin: 8px 0;
+            font-size: 13px;
+            color: var(--cinza);
+        }
+
+        .resumo-mensal strong {
+            color: var(--texto);
+        }
+
+        .data-selecionada {
+            color: var(--verde);
+            font-weight: bold;
+            font-size: 14px;
+            margin: 0 0 18px;
+            text-transform: capitalize;
+        }
+
+        .indicadores {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .indicador {
+            border: 1px solid var(--borda);
+            border-radius: 12px;
+            padding: 16px;
+            min-width: 0;
+        }
+
+        .indicador span {
+            display: block;
+            color: var(--cinza);
+            font-size: 12px;
+            line-height: 1.4;
+            margin-bottom: 9px;
+        }
+
+        .indicador strong {
+            display: block;
+            font-size: 25px;
+            overflow-wrap: anywhere;
+        }
+
+        .indicador.critico strong {
+            color: var(--vermelho);
+        }
+
+        .indicador.normal strong {
+            color: var(--verde);
+        }
+
+        .resumo-dia {
+            background: #f8fafc;
+            border: 1px solid var(--borda);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .resumo-dia h3 {
+            font-size: 15px;
+            margin: 0 0 10px;
+        }
+
+        .resumo-dia p {
+            color: var(--cinza);
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .titulo-tabela {
+            margin: 0 0 12px;
+            font-size: 16px;
+        }
+
+        .tabela-container {
+            overflow-x: auto;
+            border: 1px solid var(--borda);
+            border-radius: 10px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--borda);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--cinza);
+            font-size: 12px;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status {
+            display: inline-block;
+            border-radius: 20px;
+            padding: 5px 9px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-critico {
+            background: var(--vermelho-claro);
+            color: #991b1b;
+        }
+
+        .status-alerta {
+            background: var(--amarelo-claro);
+            color: #92400e;
+        }
+
+        .status-normal {
+            background: var(--verde-claro);
+            color: #115e59;
+        }
+
+        .estado-vazio {
+            text-align: center;
+            padding: 30px 14px;
+            color: var(--cinza);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .mensagem {
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .mensagem.erro {
+            background: var(--vermelho-claro);
+            color: #991b1b;
+        }
+
+        .rodape {
+            text-align: center;
+            color: var(--cinza);
+            font-size: 12px;
+            padding: 24px 0 10px;
+        }
+
+        @media (max-width: 850px) {
+            .painel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            main {
+                width: 94%;
+                margin: 20px auto;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .titulo-pagina h1 {
+                font-size: 23px;
+            }
+
+            .indicador {
+                padding: 12px;
+            }
+
+            .indicador strong {
+                font-size: 21px;
+            }
+
+            .semana,
+            .calendario {
+                gap: 3px;
+            }
+
+            .dia {
+                border-radius: 6px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div>
+        <div class="marca">FERMENTECH</div>
+        <div class="submarca">Monitoramento inteligente da fermentação</div>
+    </div>
+
+    <a class="voltar" href="javascript:history.back()">← Voltar</a>
+</header>
+
+<main>
+    <section class="titulo-pagina">
+        <h1>Histórico da fermentação</h1>
+        <p>
+            Consulte os registros, acompanhe as ocorrências críticas
+            e veja como a fermentação evoluiu em cada dia.
+        </p>
+    </section>
+
+    <div id="mensagem" class="mensagem" role="status">
+        Carregando histórico da fermentação...
+    </div>
+
+    <div class="painel">
+
+        <!-- CALENDÁRIO -->
+        <section class="card">
+            <h2>Calendário</h2>
+            <p class="descricao">
+                Selecione um dia para consultar as medições e os alertas registrados.
+            </p>
+
+            <div class="mes-navegacao">
+                <button
+                    type="button"
+                    class="botao-mes"
+                    id="mesAnterior"
+                    aria-label="Mês anterior"
+                >‹</button>
+
+                <h3 id="mesAno"></h3>
+
+                <button
+                    type="button"
+                    class="botao-mes"
+                    id="mesProximo"
+                    aria-label="Próximo mês"
+                >›</button>
+            </div>
+
+            <div class="semana">
+                <div>Dom</div>
+                <div>Seg</div>
+                <div>Ter</div>
+                <div>Qua</div>
+                <div>Qui</div>
+                <div>Sex</div>
+                <div>Sáb</div>
+            </div>
+
+            <div class="calendario" id="calendario"></div>
+
+            <div class="legenda">
+                <div class="legenda-item">
+                    <span class="legenda-cor" style="background:#ccfbf1"></span>
+                    Com registros
+                </div>
+
+                <div class="legenda-item">
+                    <span class="legenda-cor" style="background:#fee2e2"></span>
+                    Com ocorrência crítica
+                </div>
+
+                <div class="legenda-item">
+                    <span class="legenda-cor" style="background:#0f766e"></span>
+                    Dia selecionado
+                </div>
+            </div>
+
+            <div class="resumo-mensal">
+                <h3>Resumo do mês</h3>
+
+                <p>
+                    Dias com registros:
+                    <strong id="diasRegistradosMes">0</strong>
+                </p>
+
+                <p>
+                    Ocorrências críticas:
+                    <strong id="criticosMes">0</strong>
+                </p>
+
+                <p>
+                    Leituras registradas:
+                    <strong id="leiturasMes">0</strong>
+                </p>
+            </div>
+        </section>
+
+        <!-- RESUMO DO DIA -->
+        <section class="card">
+            <h2>Resumo diário</h2>
+
+            <p class="descricao">
+                Informações calculadas a partir dos registros disponíveis no sistema.
+            </p>
+
+            <p class="data-selecionada" id="dataSelecionada">
+                Selecione um dia no calendário
+            </p>
+
+            <div class="indicadores">
+                <div class="indicador critico">
+                    <span>Registros críticos no dia</span>
+                    <strong id="totalCriticos">—</strong>
+                </div>
+
+                <div class="indicador">
+                    <span>Temperatura máxima</span>
+                    <strong id="temperaturaMaxima">—</strong>
+                </div>
+
+                <div class="indicador">
+                    <span>Temperatura mínima</span>
+                    <strong id="temperaturaMinima">—</strong>
+                </div>
+
+                <div class="indicador normal">
+                    <span>Total de leituras</span>
+                    <strong id="totalLeituras">—</strong>
+                </div>
+            </div>
+
+            <div class="resumo-dia">
+                <h3>O que aconteceu neste dia?</h3>
+                <p id="textoResumo">
+                    Selecione um dia com registros para consultar o resumo.
+                </p>
+            </div>
+
+            <h3 class="titulo-tabela">Medições do dia</h3>
+
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Horário</th>
+                            <th>Temperatura</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tabelaHistorico">
+                        <tr>
+                            <td colspan="3" class="estado-vazio">
+                                Aguardando os dados do histórico...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div class="rodape">
+        FERMENTECH — Histórico e acompanhamento da fermentação
+    </div>
+</main>
+
+<script>
+    /*
+     * O histórico é carregado da API existente do FERMENTECH.
+     * Os dados não são simulados neste arquivo.
+     */
+    const API_HISTORICO = "/api/cocho/FT-001/history?limit=1000";
+
+    let registros = [];
+    let diaSelecionado = dataAtualFormatada();
+
+    const hoje = new Date();
+
+    let anoExibido = hoje.getFullYear();
+    let mesExibido = hoje.getMonth();
+
+    const formatoData = new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+    });
+
+    const formatoMes = new Intl.DateTimeFormat("pt-BR", {
+        month: "long",
+        year: "numeric"
+    });
+
+    function dataAtualFormatada() {
+        const agora = new Date();
+        const ano = agora.getFullYear();
+        const mes = String(agora.getMonth() + 1).padStart(2, "0");
+        const dia = String(agora.getDate()).padStart(2, "0");
+
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    function escaparHTML(valor) {
+        return String(valor ?? "").replace(/[&<>"']/g, caractere => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[caractere]);
+    }
+
+    /*
+     * Converte os campos de data da API para o formato YYYY-MM-DD.
+     * Datas SQL como "2026-10-21 14:30:00" também são aceitas.
+     */
+    function obterData(registro) {
+        const valor =
+            registro.data_hora ??
+            registro.timestamp ??
+            registro.data ??
+            registro.created_at ??
+            "";
+
+        if (!valor) return "";
+
+        const texto = String(valor);
+
+        const correspondencia = texto.match(
+            /^(\d{4})-(\d{2})-(\d{2})/
+        );
+
+        if (correspondencia) {
+            return `${correspondencia[1]}-${correspondencia[2]}-${correspondencia[3]}`;
+        }
+
+        const data = new Date(valor);
+
+        if (Number.isNaN(data.getTime())) return "";
+
+        const ano = data.getFullYear();
+        const mes = String(data.getMonth() + 1).padStart(2, "0");
+        const dia = String(data.getDate()).padStart(2, "0");
+
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    function obterTemperatura(registro) {
+        const valor =
+            registro.temperatura ??
+            registro.temperature ??
+            registro.valor ??
+            null;
+
+        if (valor === null || valor === "") return null;
+
+        const numero = Number(valor);
+
+        return Number.isFinite(numero) ? numero : null;
+    }
+
+    function obterStatus(registro) {
+        return String(
+            registro.status ??
+            registro.estado ??
+            registro.classificacao ??
+            "Sem status"
+        ).trim();
+    }
+
+    function statusCritico(registro) {
+        const status = obterStatus(registro)
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+
+        return (
+            status.includes("crit") ||
+            status.includes("perigo") ||
+            status.includes("emergencia")
+        );
+    }
+
+    function statusAlerta(registro) {
+        const status = obterStatus(registro)
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+
+        return (
+            status.includes("alerta") ||
+            status.includes("alto") ||
+            status.includes("atencao")
+        );
+    }
+
+    function obterHora(registro) {
+        const valor =
+            registro.data_hora ??
+            registro.timestamp ??
+            registro.data ??
+            registro.created_at ??
+            "";
+
+        const texto = String(valor);
+
+        const correspondencia = texto.match(
+            /T?(\d{2}):(\d{2})(?::(\d{2}))?/
+        );
+
+        if (correspondencia) {
+            return `${correspondencia[1]}:${correspondencia[2]}`;
+        }
+
+        return "—";
+    }
+
+    function formatarTemperatura(valor) {
+        if (valor === null || valor === undefined) return "—";
+
+        return valor.toLocaleString("pt-BR", {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 2
+        }) + " °C";
+    }
+
+    function formatarData(chave) {
+        if (!chave) return "Data não informada";
+
+        const [ano, mes, dia] = chave.split("-").map(Number);
+
+        return formatoData.format(new Date(ano, mes - 1, dia));
+    }
+
+    function registrosDoDia(chave) {
+        return registros.filter(registro => obterData(registro) === chave);
+    }
+
+    function registrosDoMes(ano, mes) {
+        const prefixo =
+            `${ano}-${String(mes + 1).padStart(2, "0")}`;
+
+        return registros.filter(registro =>
+            obterData(registro).startsWith(prefixo)
+        );
+    }
+
+    function atualizarCalendario() {
+        const calendario = document.getElementById("calendario");
+
+        document.getElementById("mesAno").textContent =
+            formatoMes.format(new Date(anoExibido, mesExibido, 1));
+
+        calendario.innerHTML = "";
+
+        const primeiroDia = new Date(
+            anoExibido,
+            mesExibido,
+            1
+        ).getDay();
+
+        const quantidadeDias = new Date(
+            anoExibido,
+            mesExibido + 1,
+            0
+        ).getDate();
+
+        for (let i = 0; i < primeiroDia; i++) {
+            const vazio = document.createElement("div");
+            vazio.className = "dia vazio";
+            vazio.setAttribute("aria-hidden", "true");
+            calendario.appendChild(vazio);
+        }
+
+        for (let dia = 1; dia <= quantidadeDias; dia++) {
+            const chave =
+                `${anoExibido}-${String(mesExibido + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+
+            const registrosDia = registrosDoDia(chave);
+
+            const temCritico = registrosDia.some(statusCritico);
+
+            const botao = document.createElement("button");
+            botao.type = "button";
+            botao.className = "dia";
+
+            if (registrosDia.length > 0) {
+                botao.classList.add(
+                    temCritico ? "com-critico" : "com-registro"
+                );
+            } else {
+                botao.classList.add("sem-registro");
+            }
+
+            if (chave === diaSelecionado) {
+                botao.classList.add("selecionado");
+            }
+
+            botao.innerHTML = `
+                <span>${dia}</span>
+                ${registrosDia.length > 0
+                    ? '<span class="marcador" aria-hidden="true"></span>'
+                    : ''
+                }
+            `;
+
+            botao.setAttribute(
+                "aria-label",
+                `${dia} de ${formatoMes.format(new Date(anoExibido, mesExibido, 1))}` +
+                (registrosDia.length
+                    ? `, ${registrosDia.length} leituras registradas`
+                    : ", sem leituras registradas")
+            );
+
+            botao.setAttribute(
+                "aria-pressed",
+                chave === diaSelecionado ? "true" : "false"
+            );
+
+            botao.addEventListener("click", () => {
+                diaSelecionado = chave;
+                atualizarCalendario();
+                atualizarResumoDiario();
+            });
+
+            calendario.appendChild(botao);
+        }
+
+        atualizarResumoMensal();
+    }
+
+    function atualizarResumoMensal() {
+        const dados = registrosDoMes(anoExibido, mesExibido);
+
+        const dias = new Set(
+            dados.map(obterData).filter(Boolean)
+        );
+
+        const criticos = dados.filter(statusCritico).length;
+
+        document.getElementById("diasRegistradosMes").textContent =
+            dias.size;
+
+        document.getElementById("criticosMes").textContent =
+            criticos;
+
+        document.getElementById("leiturasMes").textContent =
+            dados.length;
+    }
+
+    function atualizarResumoDiario() {
+        const dados = registrosDoDia(diaSelecionado);
+
+        document.getElementById("dataSelecionada").textContent =
+            formatarData(diaSelecionado);
+
+        const criticos = dados.filter(statusCritico).length;
+
+        const temperaturas = dados
+            .map(obterTemperatura)
+            .filter(valor => valor !== null);
+
+        const maximo = temperaturas.length
+            ? Math.max(...temperaturas)
+            : null;
+
+        const minimo = temperaturas.length
+            ? Math.min(...temperaturas)
+            : null;
+
+        document.getElementById("totalCriticos").textContent =
+            criticos;
+
+        document.getElementById("temperaturaMaxima").textContent =
+            formatarTemperatura(maximo);
+
+        document.getElementById("temperaturaMinima").textContent =
+            formatarTemperatura(minimo);
+
+        document.getElementById("totalLeituras").textContent =
+            dados.length;
+
+        const textoResumo = document.getElementById("textoResumo");
+
+        if (dados.length === 0) {
+            textoResumo.textContent =
+                "Não há leituras registradas para este dia. " +
+                "Isso significa apenas que não foram encontrados registros " +
+                "na consulta, e não necessariamente que a fermentação não ocorreu.";
+
+            document.getElementById("tabelaHistorico").innerHTML = `
+                <tr>
+                    <td colspan="3" class="estado-vazio">
+                        Nenhuma medição encontrada neste dia.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        const partes = [
+            `${dados.length} leitura(s) registrada(s) neste dia.`
+        ];
+
+        if (criticos > 0) {
+            partes.push(
+                `Foram encontrados ${criticos} registro(s) com status crítico.`
+            );
+        } else {
+            partes.push(
+                "Nenhum registro com status crítico foi encontrado nos dados consultados."
+            );
+        }
+
+        if (maximo !== null) {
+            partes.push(
+                `A temperatura máxima registrada foi ${formatarTemperatura(maximo)}.`
+            );
+        }
+
+        if (minimo !== null) {
+            partes.push(
+                `A temperatura mínima registrada foi ${formatarTemperatura(minimo)}.`
+            );
+        }
+
+        textoResumo.textContent = partes.join(" ");
+
+        /*
+         * Exibe primeiro as medições mais recentes.
+         */
+        const ordenados = [...dados].sort((a, b) =>
+            String(
+                b.data_hora ?? b.timestamp ?? b.data ?? ""
+            ).localeCompare(
+                String(
+                    a.data_hora ?? a.timestamp ?? a.data ?? ""
+                )
+            )
+        );
+
+        document.getElementById("tabelaHistorico").innerHTML =
+            ordenados.map(registro => {
+                const status = obterStatus(registro);
+
+                let classe = "status-normal";
+
+                if (statusCritico(registro)) {
+                    classe = "status-critico";
+                } else if (statusAlerta(registro)) {
+                    classe = "status-alerta";
+                }
+
+                const temperatura = obterTemperatura(registro);
+
+                return `
+                    <tr>
+                        <td>${escaparHTML(obterHora(registro))}</td>
+                        <td>${escaparHTML(formatarTemperatura(temperatura))}</td>
+                        <td>
+                            <span class="status ${classe}">
+                                ${escaparHTML(status)}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+    }
+
+    function mudarMes(diferenca) {
+        const novoMes = new Date(
+            anoExibido,
+            mesExibido + diferenca,
+            1
+        );
+
+        anoExibido = novoMes.getFullYear();
+        mesExibido = novoMes.getMonth();
+
+        atualizarCalendario();
+    }
+
+    document.getElementById("mesAnterior").addEventListener(
+        "click",
+        () => mudarMes(-1)
+    );
+
+    document.getElementById("mesProximo").addEventListener(
+        "click",
+        () => mudarMes(1)
+    );
+
+    async function carregarHistorico() {
+        const mensagem = document.getElementById("mensagem");
+
+        try {
+            const resposta = await fetch(API_HISTORICO, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                credentials: "same-origin"
+            });
+
+            if (!resposta.ok) {
+                throw new Error(
+                    `Não foi possível consultar o histórico (HTTP ${resposta.status}).`
+                );
+            }
+
+            const resultado = await resposta.json();
+
+            /*
+             * Aceita uma lista direta ou uma lista dentro de um objeto.
+             */
+            let lista;
+
+            if (Array.isArray(resultado)) {
+                lista = resultado;
+            } else {
+                lista =
+                    resultado.history ??
+                    resultado.historico ??
+                    resultado.dados ??
+                    resultado.temperaturas ??
+                    resultado.registros;
+            }
+
+            if (!Array.isArray(lista)) {
+                throw new Error(
+                    "A resposta da API não contém uma lista de registros reconhecida."
+                );
+            }
+
+            registros = lista.filter(registro => obterData(registro));
+
+            mensagem.textContent =
+                registros.length > 0
+                    ? `Histórico carregado: ${registros.length} registro(s) encontrado(s).`
+                    : "A consulta foi realizada, mas ainda não existem registros de temperatura disponíveis.";
+
+            mensagem.classList.remove("erro");
+
+            atualizarCalendario();
+            atualizarResumoDiario();
+
+        } catch (erro) {
+            console.error("Erro ao carregar histórico:", erro);
+
+            mensagem.textContent =
+                "Não foi possível carregar o histórico. Verifique se o servidor " +
+                "FERMENTECH está funcionando e se a API de histórico está disponível. " +
+                "Detalhe: " + erro.message;
+
+            mensagem.classList.add("erro");
+
+            registros = [];
+
+            atualizarCalendario();
+            atualizarResumoDiario();
+        }
+    }
+
+    carregarHistorico();
+</script>
+
+</body>
+</html>
