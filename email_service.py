@@ -134,7 +134,7 @@ Equipe FERMENTECH
         with smtplib.SMTP(
     servidor_smtp,
     porta_smtp,
-    timeout=60
+    timeout=15
 ) as servidor:
 
             # Identifica o cliente SMTP
