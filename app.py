@@ -106,6 +106,21 @@ def inicializar_banco():
             """
         )
 
+                # Tabela de responsabilidades compartilhadas dos cochos
+        conexao.execute(
+            """
+            CREATE TABLE IF NOT EXISTS responsabilidades_cocho (
+                cocho_codigo TEXT PRIMARY KEY,
+                usuario_id INTEGER,
+                usuario_nome TEXT NOT NULL,
+                usuario_email TEXT NOT NULL,
+                inicio TEXT NOT NULL,
+                fim TEXT NOT NULL,
+                dias INTEGER NOT NULL,
+                tipo TEXT NOT NULL
+            )
+            """
+        )
         # Tabela do histórico da fermentação
         conexao.execute(
             """
@@ -603,6 +618,7 @@ def scanear_qr():
 # COCHO
 # ============================================================
 
+
 @app.route("/cocho/<codigo>", methods=["GET", "POST"])
 def cocho(codigo):
 
@@ -612,73 +628,274 @@ def cocho(codigo):
     if codigo != "FT-001":
         return "Cocho não encontrado.", 404
 
-    if request.method == "POST":
-        tipo_responsabilidade = request.form.get(
-            "tipo_responsabilidade"
-        )
+    agora = datetime.now()
 
-        dias = request.form.get("dias")
+    try:
+        with conectar_banco() as conexao:
 
-        if tipo_responsabilidade not in ["periodo", "fermentacao"]:
-            flash(
-                "Selecione como você deseja se responsabilizar "
-                "pelo cocho.",
-                "erro",
-            )
+            # Impede duas pessoas de assumirem o cocho ao mesmo tempo.
+            conexao.execute("BEGIN IMMEDIATE")
 
-            return redirect(url_for("cocho", codigo=codigo))
+            atual = conexao.execute(
+                """
+                SELECT *
+                FROM responsabilidades_cocho
+                WHERE cocho_codigo = ?
+                """,
+                (codigo,),
+            ).fetchone()
 
-        if tipo_responsabilidade == "periodo":
-            try:
-                dias = int(dias)
+            # Verifica se a responsabilidade existente terminou.
+            if atual:
+                try:
+                    fim_atual = datetime.fromisoformat(atual["fim"])
 
-            except (TypeError, ValueError):
-                flash(
-                    "Selecione uma quantidade de dias válida.",
-                    "erro",
+                except (TypeError, ValueError):
+                    conexao.execute(
+                        """
+                        DELETE FROM responsabilidades_cocho
+                        WHERE cocho_codigo = ?
+                        """,
+                        (codigo,),
+                    )
+                    atual = None
+
+                else:
+                    if agora >= fim_atual:
+                        conexao.execute(
+                            """
+                            DELETE FROM responsabilidades_cocho
+                            WHERE cocho_codigo = ?
+                            """,
+                            (codigo,),
+                        )
+                        atual = None
+
+            # GET: alguém escaneou o QR Code.
+            if request.method == "GET" and atual:
+
+                email_atual = (
+                    session.get("email") or ""
+                ).strip().lower()
+
+                email_dono = (
+                    atual["usuario_email"] or ""
+                ).strip().lower()
+
+                # Se for o próprio responsável, abre sua fermentação.
+                if email_atual and email_atual == email_dono:
+                    conexao.commit()
+
+                    return redirect(
+                        url_for("minha_fermentacao")
+                    )
+
+                # Se for outra pessoa, informa quando poderá assumir.
+                fim_formatado = datetime.fromisoformat(
+                    atual["fim"]
+                ).strftime("%d/%m/%Y às %H:%M")
+
+                conexao.commit()
+
+                return render_template(
+                    "confirmar_responsabilidade.html",
+                    codigo=codigo,
+                    nome=session.get("nome"),
+                    email=session.get("email"),
+                    cocho_ocupado=True,
+                    responsavel_nome=atual["usuario_nome"],
+                    responsavel_fim=fim_formatado,
+                    mensagem_cocho=(
+                        "Este cocho já possui um responsável. "
+                        "Tente novamente no dia "
+                        f"{fim_formatado}, quando a responsabilidade "
+                        "atual termina."
+                    ),
                 )
 
-                return redirect(url_for("cocho", codigo=codigo))
+            # POST: usuário confirmou a responsabilidade.
+            if request.method == "POST":
 
-            if dias < 1 or dias > 7:
-                flash(
-                    "A responsabilidade deve ser de 1 a 7 dias.",
-                    "erro",
+                tipo = request.form.get(
+                    "tipo_responsabilidade", ""
+                ).strip()
+
+                dias_form = request.form.get("dias")
+
+                if tipo not in ["periodo", "fermentacao"]:
+                    conexao.commit()
+
+                    flash(
+                        "Selecione como você deseja se "
+                        "responsabilizar pelo cocho.",
+                        "erro",
+                    )
+
+                    return redirect(
+                        url_for("cocho", codigo=codigo)
+                    )
+
+                if tipo == "periodo":
+
+                    try:
+                        dias = int(dias_form)
+
+                    except (TypeError, ValueError):
+                        conexao.commit()
+
+                        flash(
+                            "Selecione uma quantidade de dias válida.",
+                            "erro",
+                        )
+
+                        return redirect(
+                            url_for("cocho", codigo=codigo)
+                        )
+
+                    if not 1 <= dias <= 7:
+                        conexao.commit()
+
+                        flash(
+                            "A responsabilidade deve ser de 1 a 7 dias.",
+                            "erro",
+                        )
+
+                        return redirect(
+                            url_for("cocho", codigo=codigo)
+                        )
+
+                else:
+                    dias = 7
+
+                # Verifica novamente antes de salvar.
+                atual = conexao.execute(
+                    """
+                    SELECT *
+                    FROM responsabilidades_cocho
+                    WHERE cocho_codigo = ?
+                    """,
+                    (codigo,),
+                ).fetchone()
+
+                if atual:
+
+                    try:
+                        fim_atual = datetime.fromisoformat(
+                            atual["fim"]
+                        )
+
+                    except (TypeError, ValueError):
+                        fim_atual = agora
+
+                    if agora < fim_atual:
+
+                        fim_formatado = fim_atual.strftime(
+                            "%d/%m/%Y às %H:%M"
+                        )
+
+                        conexao.commit()
+
+                        return render_template(
+                            "confirmar_responsabilidade.html",
+                            codigo=codigo,
+                            nome=session.get("nome"),
+                            email=session.get("email"),
+                            cocho_ocupado=True,
+                            responsavel_nome=atual["usuario_nome"],
+                            responsavel_fim=fim_formatado,
+                            mensagem_cocho=(
+                                "Este cocho já possui um responsável. "
+                                "Tente novamente no dia "
+                                f"{fim_formatado}, quando a responsabilidade "
+                                "atual termina."
+                            ),
+                        )
+
+                    conexao.execute(
+                        """
+                        DELETE FROM responsabilidades_cocho
+                        WHERE cocho_codigo = ?
+                        """,
+                        (codigo,),
+                    )
+
+                # Define o novo período.
+                inicio = datetime.now()
+
+                fim = inicio + timedelta(days=dias)
+
+                # Salva a responsabilidade no SQLite.
+                conexao.execute(
+                    """
+                    INSERT INTO responsabilidades_cocho
+                    (
+                        cocho_codigo,
+                        usuario_id,
+                        usuario_nome,
+                        usuario_email,
+                        inicio,
+                        fim,
+                        dias,
+                        tipo
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        codigo,
+                        session.get("usuario_id"),
+                        session.get("nome") or "Usuário FERMENTECH",
+                        (session.get("email") or "").strip().lower(),
+                        inicio.isoformat(timespec="seconds"),
+                        fim.isoformat(timespec="seconds"),
+                        dias,
+                        tipo,
+                    ),
                 )
 
-                return redirect(url_for("cocho", codigo=codigo))
+                conexao.commit()
 
-        else:
-            dias = 7
+                # Mantém os dados que a página já utiliza.
+                session["responsabilidade_cocho"] = {
+                    "cocho": codigo,
+                    "usuario_nome": session.get("nome"),
+                    "usuario_email": session.get("email"),
+                    "inicio": inicio.strftime(
+                        "%d/%m/%Y %H:%M"
+                    ),
+                    "fim": fim.strftime(
+                        "%d/%m/%Y %H:%M"
+                    ),
+                    "dias": dias,
+                    "tipo": tipo,
+                }
 
-        inicio_responsabilidade = datetime.now()
+                return redirect(
+                    url_for("minha_fermentacao")
+                )
 
-        fim_responsabilidade = (
-            inicio_responsabilidade + timedelta(days=dias)
+            conexao.commit()
+
+    except sqlite3.Error:
+        app.logger.exception(
+            "Erro ao consultar ou salvar a responsabilidade do cocho."
         )
 
-        session["responsabilidade_cocho"] = {
-            "cocho": codigo,
-            "usuario_nome": session.get("nome"),
-            "usuario_email": session.get("email"),
-            "inicio": inicio_responsabilidade.strftime(
-                "%d/%m/%Y %H:%M"
-            ),
-            "fim": fim_responsabilidade.strftime(
-                "%d/%m/%Y %H:%M"
-            ),
-            "dias": dias,
-            "tipo": tipo_responsabilidade,
-        }
+        flash(
+            "Não foi possível verificar a disponibilidade do cocho. "
+            "Tente novamente.",
+            "erro",
+        )
 
-        return redirect(url_for("minha_fermentacao"))
+        return redirect(url_for("scanear_qr"))
 
     return render_template(
         "confirmar_responsabilidade.html",
         codigo=codigo,
         nome=session.get("nome"),
         email=session.get("email"),
+        cocho_ocupado=False,
     )
+
 
 
 
@@ -686,58 +903,163 @@ def cocho(codigo):
 # MINHA FERMENTAÇÃO
 # ============================================================
 
+
 @app.route("/minha-fermentacao")
 def minha_fermentacao():
 
     if not session.get("autenticado"):
         return redirect(url_for("login"))
 
-    responsabilidade = session.get("responsabilidade_cocho")
+    email_sessao = (
+        session.get("email") or ""
+    ).strip().lower()
 
-    if not responsabilidade:
+    if not email_sessao:
+        session.pop("responsabilidade_cocho", None)
+
         flash(
-            "Você ainda não assumiu a responsabilidade por um cocho.",
+            "Sua sessão está incompleta. Entre novamente.",
             "erro",
         )
-        return redirect(url_for("scanear_qr"))
 
-    # Recupera a data de término salva na sessão.
-    fim_texto = responsabilidade.get("fim")
+        return redirect(url_for("login"))
 
     try:
-        # Compatibilidade com o formato que o projeto já utiliza.
-        fim_responsabilidade = datetime.strptime(
-            fim_texto,
-            "%d/%m/%Y %H:%M",
+        with conectar_banco() as conexao:
+
+            responsabilidade = conexao.execute(
+                """
+                SELECT *
+                FROM responsabilidades_cocho
+                WHERE cocho_codigo = ?
+                """,
+                ("FT-001",),
+            ).fetchone()
+
+            if responsabilidade is None:
+
+                session.pop("responsabilidade_cocho", None)
+
+                flash(
+                    "Você ainda não assumiu a responsabilidade por um cocho.",
+                    "erro",
+                )
+
+                return redirect(url_for("scanear_qr"))
+
+            email_dono = (
+                responsabilidade["usuario_email"] or ""
+            ).strip().lower()
+
+            # Somente o responsável atual pode acessar.
+            if email_sessao != email_dono:
+
+                session.pop("responsabilidade_cocho", None)
+
+                fim = datetime.fromisoformat(
+                    responsabilidade["fim"]
+                )
+
+                flash(
+                    "Este cocho está sob responsabilidade de outra "
+                    "pessoa até "
+                    f"{fim.strftime('%d/%m/%Y às %H:%M')}.",
+                    "erro",
+                )
+
+                return redirect(url_for("scanear_qr"))
+
+            # Confere as datas salvas.
+            try:
+                inicio = datetime.fromisoformat(
+                    responsabilidade["inicio"]
+                )
+
+                fim = datetime.fromisoformat(
+                    responsabilidade["fim"]
+                )
+
+            except (TypeError, ValueError):
+
+                conexao.execute(
+                    """
+                    DELETE FROM responsabilidades_cocho
+                    WHERE cocho_codigo = ?
+                    """,
+                    ("FT-001",),
+                )
+
+                session.pop("responsabilidade_cocho", None)
+
+                flash(
+                    "Não foi possível validar o prazo da "
+                    "responsabilidade. Leia o QR Code novamente.",
+                    "erro",
+                )
+
+                return redirect(url_for("scanear_qr"))
+
+            # Se terminou, libera o cocho.
+            if datetime.now() >= fim:
+
+                conexao.execute(
+                    """
+                    DELETE FROM responsabilidades_cocho
+                    WHERE cocho_codigo = ?
+                    """,
+                    ("FT-001",),
+                )
+
+                session.pop("responsabilidade_cocho", None)
+
+                flash(
+                    "Seu período de responsabilidade terminou. "
+                    "Leia o QR Code para assumir o cocho novamente.",
+                    "sucesso",
+                )
+
+                return redirect(url_for("scanear_qr"))
+
+            # Formata as datas para a página.
+            dados = dict(responsabilidade)
+
+            dados["inicio"] = inicio.strftime(
+                "%d/%m/%Y %H:%M"
+            )
+
+            dados["fim"] = fim.strftime(
+                "%d/%m/%Y %H:%M"
+            )
+
+            # Mantém a sessão sincronizada.
+            session["responsabilidade_cocho"] = {
+                "cocho": dados["cocho_codigo"],
+                "usuario_nome": dados["usuario_nome"],
+                "usuario_email": dados["usuario_email"],
+                "inicio": dados["inicio"],
+                "fim": dados["fim"],
+                "dias": dados["dias"],
+                "tipo": dados["tipo"],
+            }
+
+    except sqlite3.Error:
+        app.logger.exception(
+            "Erro ao consultar a responsabilidade do cocho."
         )
 
-    except (TypeError, ValueError):
-        app.logger.warning(
-            "Data de término inválida na responsabilidade do cocho."
-        )
         flash(
-            "Não foi possível validar o prazo da responsabilidade. "
-            "Leia o QR Code novamente.",
+            "Não foi possível consultar sua responsabilidade agora. "
+            "Tente novamente.",
             "erro",
         )
-        session.pop("responsabilidade_cocho", None)
-        return redirect(url_for("scanear_qr"))
 
-    # Se o prazo terminou, libera a sessão para assumir outro cocho.
-    if datetime.now() >= fim_responsabilidade:
-        session.pop("responsabilidade_cocho", None)
-
-        flash(
-            "Seu período de responsabilidade terminou. "
-            "Leia o QR Code para assumir um cocho novamente.",
-            "sucesso",
-        )
         return redirect(url_for("scanear_qr"))
 
     return render_template(
         "minha_fermentacao.html",
-        responsabilidade=responsabilidade,
+        responsabilidade=dados,
     )
+
 
 
 
