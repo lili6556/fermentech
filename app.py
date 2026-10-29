@@ -1718,6 +1718,7 @@ def funcionarios():
     )
 
 
+
 # ============================================================
 # CADASTRAR FUNCIONÁRIO
 # ============================================================
@@ -1729,99 +1730,50 @@ def funcionarios():
 def cadastrar_funcionario():
 
     if not session.get("autenticado"):
-
-        return redirect(
-            url_for("login")
-        )
+        return redirect(url_for("login"))
 
     if session.get("tipo") != "admin":
+        return redirect(url_for("login"))
 
-        return redirect(
-            url_for("login")
-        )
+    nome = request.form.get("nome", "").strip()
 
-    nome = request.form.get(
-        "nome", ""
-    ).strip()
-
-    email = request.form.get(
-        "email", ""
-    ).strip().lower()
+    email = request.form.get("email", "").strip().lower()
 
     if not nome or not email:
-
         flash(
             "Preencha o nome e o e-mail.",
             "erro",
         )
-
-        return redirect(
-            url_for("funcionarios")
-        )
+        return redirect(url_for("funcionarios"))
 
     if len(nome) > 120 or len(email) > 254:
-
         flash(
             "O nome ou o e-mail ultrapassa o limite permitido.",
             "erro",
         )
-
-        return redirect(
-            url_for("funcionarios")
-        )
+        return redirect(url_for("funcionarios"))
 
     if not re.fullmatch(
         r"[^@\s]+@[^@\s]+\.[^@\s]+",
         email,
     ):
-
         flash(
             "Digite um endereço de e-mail válido.",
             "erro",
         )
-
-        return redirect(
-            url_for("funcionarios")
-        )
+        return redirect(url_for("funcionarios"))
 
     if buscar_usuario_por_email(email):
-
         flash(
             "Este e-mail já está cadastrado.",
             "erro",
         )
-
-        return redirect(
-            url_for("funcionarios")
-        )
+        return redirect(url_for("funcionarios"))
 
     senha_temporaria = gerar_senha_aleatoria()
 
     # --------------------------------------------------------
-    # ENVIAR SENHA POR E-MAIL
-    # --------------------------------------------------------
-
-    email_enviado = enviar_senha_por_email(
-        email=email,
-        nome=nome,
-        senha=senha_temporaria,
-    )
-
-    if not email_enviado:
-
-        flash(
-            "Não foi possível enviar o e-mail. "
-            "O funcionário não foi cadastrado. "
-            "Confira o erro no terminal.",
-            "erro",
-        )
-
-        return redirect(
-            url_for("funcionarios")
-        )
-
-    # --------------------------------------------------------
-    # SALVAR FUNCIONÁRIO
+    # SALVAR FUNCIONÁRIO PRIMEIRO
     # --------------------------------------------------------
 
     try:
@@ -1839,35 +1791,74 @@ def cadastrar_funcionario():
             "erro",
         )
 
-        return redirect(
-            url_for("funcionarios")
-        )
+        return redirect(url_for("funcionarios"))
 
     except sqlite3.Error:
 
         app.logger.exception(
-            "Erro ao salvar funcionário."
+            "Erro ao salvar funcionário no banco."
         )
 
         flash(
-            "O e-mail foi enviado, mas ocorreu um erro ao salvar "
-            "o funcionário. Confira o terminal antes de tentar novamente.",
+            "Não foi possível cadastrar o funcionário. "
+            "Confira o banco de dados.",
             "erro",
         )
 
-        return redirect(
-            url_for("funcionarios")
+        return redirect(url_for("funcionarios"))
+
+    # --------------------------------------------------------
+    # TENTAR ENVIAR A SENHA POR E-MAIL
+    # --------------------------------------------------------
+
+    try:
+
+        email_enviado = enviar_senha_por_email(
+            email=email,
+            nome=nome,
+            senha=senha_temporaria,
         )
 
-    flash(
-        f"Funcionário {nome} cadastrado com sucesso! "
-        f"A senha temporária foi enviada para {email}.",
-        "sucesso",
-    )
+    except Exception:
+
+        app.logger.exception(
+            "Erro inesperado ao enviar senha por e-mail."
+        )
+
+        email_enviado = False
+
+    # --------------------------------------------------------
+    # RESULTADO DO CADASTRO
+    # --------------------------------------------------------
+
+    if email_enviado:
+
+        flash(
+            f"Funcionário {nome} cadastrado com sucesso! "
+            f"A senha temporária foi enviada para {email}.",
+            "sucesso",
+        )
+
+    else:
+
+        app.logger.warning(
+            "Funcionário cadastrado, mas o e-mail não foi enviado: %s",
+            email,
+        )
+
+        flash(
+            f"Funcionário {nome} foi cadastrado, mas não foi "
+            "possível enviar a senha por e-mail. "
+            "O cadastro está salvo. Será necessário configurar "
+            "o envio de e-mail e disponibilizar uma nova senha "
+            "temporária para o funcionário.",
+            "erro",
+        )
 
     return redirect(
         url_for("funcionarios")
     )
+
 
 
 # ============================================================
