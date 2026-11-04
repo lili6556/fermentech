@@ -1,10 +1,10 @@
 
 import os
-import smtplib
-import ssl
+import json
+import urllib.request
+import urllib.error
 
 from pathlib import Path
-from email.message import EmailMessage
 from dotenv import load_dotenv
 
 
@@ -19,13 +19,14 @@ load_dotenv(BASE_DIR / ".env")
 
 
 # ============================================================
-# ENVIO DE E-MAIL
+# ENVIO DE E-MAIL PELA API BREVO
 # ============================================================
 
 def enviar_senha_por_email(email, nome, senha):
 
     """
-    Envia ao funcionário um e-mail com sua senha temporária.
+    Envia ao funcionário um e-mail com sua senha temporária
+    utilizando a API HTTPS da Brevo.
 
     Parâmetros:
         email: e-mail pessoal do funcionário.
@@ -33,73 +34,52 @@ def enviar_senha_por_email(email, nome, senha):
         senha: senha temporária gerada pelo app.py.
 
     Retorna:
-        True  -> envio aceito pelo servidor SMTP.
-        False -> ocorreu um erro durante o envio.
+        True  -> solicitação de envio aceita pela API.
+        False -> ocorreu algum erro durante o envio.
     """
 
     # --------------------------------------------------------
-    # Recupera as configurações do .env
+    # Recupera as configurações do ambiente
     # --------------------------------------------------------
 
-    remetente = os.getenv(
-        "SMTP_USER",
+    api_key = os.getenv(
+        "BREVO_API_KEY",
         ""
     ).strip()
 
-    senha_app = os.getenv(
-        "SMTP_PASSWORD",
+    remetente = os.getenv(
+        "BREVO_SENDER_EMAIL",
         ""
     ).strip()
 
     nome_sistema = os.getenv(
-        "SMTP_FROM_NAME",
+        "BREVO_SENDER_NAME",
         "FERMENTECH"
     ).strip()
-
-    servidor_smtp = os.getenv(
-        "SMTP_HOST",
-        "smtp.gmail.com"
-    ).strip()
-
-    try:
-        porta_smtp = int(
-            os.getenv("SMTP_PORT", "587")
-        )
-    except ValueError:
-        print("ERRO: SMTP_PORT precisa ser um número.")
-        return False
 
     # --------------------------------------------------------
     # Valida as configurações
     # --------------------------------------------------------
 
-    if not remetente or not senha_app:
-        print(
-            "ERRO: configure SMTP_USER e SMTP_PASSWORD "
-            "no arquivo .env."
-        )
+    if not api_key:
+        print("ERRO: configure BREVO_API_KEY no ambiente.")
+        return False
+
+    if not remetente:
+        print("ERRO: configure BREVO_SENDER_EMAIL no ambiente.")
         return False
 
     if not email or not nome or not senha:
-        print(
-            "ERRO: e-mail, nome e senha são obrigatórios."
-        )
+        print("ERRO: e-mail, nome e senha são obrigatórios.")
         return False
 
     # --------------------------------------------------------
     # Monta a mensagem
     # --------------------------------------------------------
 
-    mensagem = EmailMessage()
+    assunto = "Seu acesso ao FERMENTECH"
 
-    mensagem["Subject"] = "Seu acesso ao FERMENTECH"
-
-    mensagem["From"] = f"{nome_sistema} <{remetente}>"
-
-    mensagem["To"] = email
-
-    mensagem.set_content(
-        f"""Olá, {nome}!
+    conteudo = f"""Olá, {nome}!
 
 Seu acesso ao FERMENTECH foi criado.
 
@@ -114,89 +94,122 @@ com a administração do FERMENTECH.
 Atenciosamente,
 Equipe FERMENTECH
 """
+
+    dados = {
+        "sender": {
+            "name": nome_sistema,
+            "email": remetente
+        },
+        "to": [
+            {
+                "email": email,
+                "name": nome
+            }
+        ],
+        "subject": assunto,
+        "textContent": conteudo
+    }
+
+    # Converte os dados para JSON
+    corpo = json.dumps(dados).encode("utf-8")
+
+    # --------------------------------------------------------
+    # Prepara a requisição HTTPS
+    # --------------------------------------------------------
+
+    requisicao = urllib.request.Request(
+        url="https://api.brevo.com/v3/smtp/email",
+        data=corpo,
+        headers={
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json"
+        },
+        method="POST"
     )
 
     # --------------------------------------------------------
-    # Conecta ao Gmail e envia a mensagem
+    # Conecta à API e envia o e-mail
     # --------------------------------------------------------
 
     try:
         print("=" * 55)
-        print("FERMENTECH - ENVIO DE E-MAIL")
+        print("FERMENTECH - ENVIO DE E-MAIL PELA BREVO")
         print(f"Destinatário: {email}")
         print(f"Remetente: {remetente}")
-        print(f"Servidor: {servidor_smtp}")
-        print(f"Porta: {porta_smtp}")
-        print("Iniciando conexão SMTP...")
+        print("Iniciando conexão HTTPS...")
 
-        contexto_ssl = ssl.create_default_context()
+        with urllib.request.urlopen(
+            requisicao,
+            timeout=20
+        ) as resposta:
 
-        with smtplib.SMTP(
-    servidor_smtp,
-    porta_smtp,
-    timeout=15
-) as servidor:
+            resultado = resposta.read().decode("utf-8")
+            codigo = resposta.status
 
-            # Identifica o cliente SMTP
-            servidor.ehlo()
+        if codigo == 201:
+            try:
+                resposta_json = json.loads(resultado)
+                message_id = resposta_json.get("messageId")
+            except json.JSONDecodeError:
+                message_id = None
 
-            # Ativa a conexão criptografada
-            servidor.starttls(
-                context=contexto_ssl
-            )
+            print("Solicitação de envio aceita pela Brevo!")
 
-            # Identifica novamente após ativar TLS
-            servidor.ehlo()
+            if message_id:
+                print(f"ID da mensagem: {message_id}")
 
-            # Autentica a conta remetente
-            print("Autenticando no Gmail...")
+            print("=" * 55)
 
-            servidor.login(
-                remetente,
-                senha_app
-            )
+            return True
 
-            # Envia a mensagem
-            print("Enviando mensagem...")
+        print(f"ERRO: resposta inesperada da API: {codigo}")
+        print(resultado)
 
-            servidor.send_message(
-                mensagem
-            )
-
-        print("E-mail enviado com sucesso!")
-        print("=" * 55)
-
-        return True
-
-    except smtplib.SMTPAuthenticationError as erro:
-        print("ERRO: falha na autenticação do Gmail.")
-        print("Confira o e-mail remetente e a senha de aplicativo.")
-        print(f"Detalhes SMTP: {erro}")
         return False
 
-    except smtplib.SMTPRecipientsRefused as erro:
-        print("ERRO: o servidor recusou o destinatário.")
-        print(f"Detalhes SMTP: {erro}")
-        return False
+    # --------------------------------------------------------
+    # Tratamento de erros HTTP
+    # --------------------------------------------------------
 
-    except smtplib.SMTPException as erro:
-        print("ERRO SMTP durante o envio.")
-        print(f"Tipo: {type(erro).__name__}")
-        print(f"Detalhes: {erro}")
-        return False
+    except urllib.error.HTTPError as erro:
 
-    except (TimeoutError, OSError) as erro:
-        print("ERRO: não foi possível conectar ao servidor SMTP.")
-        print(f"Tipo: {type(erro).__name__}")
-        print(f"Detalhes: {erro}")
-        print(
-            "Confira a conectividade com o servidor, "
-            "a porta SMTP e possíveis bloqueios de rede."
+        detalhes = erro.read().decode(
+            "utf-8",
+            errors="replace"
         )
+
+        print("ERRO: a API recusou a solicitação.")
+        print(f"Código HTTP: {erro.code}")
+        print(f"Detalhes: {detalhes}")
+
         return False
+
+    # --------------------------------------------------------
+    # Tratamento de erros de conexão
+    # --------------------------------------------------------
+
+    except urllib.error.URLError as erro:
+
+        print("ERRO: não foi possível conectar à API.")
+        print(f"Detalhes: {erro.reason}")
+
+        return False
+
+    except TimeoutError:
+
+        print("ERRO: tempo limite de conexão excedido.")
+
+        return False
+
+    # --------------------------------------------------------
+    # Outros erros
+    # --------------------------------------------------------
 
     except Exception as erro:
+
         print("ERRO inesperado ao enviar o e-mail.")
         print(f"Tipo: {type(erro).__name__}")
         print(f"Detalhes: {erro}")
+
         return False
