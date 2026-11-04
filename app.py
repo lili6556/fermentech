@@ -873,6 +873,66 @@ def registrar_leitura_fermentacao(
 
 
 # ============================================================
+# RECEBER TEMPERATURA REAL DO ARDUINO
+# ============================================================
+
+@app.route("/api/cocho/<codigo>/temperatura", methods=["POST"])
+def api_receber_temperatura(codigo):
+    """Recebe uma leitura real enviada pela ponte USB do Arduino."""
+
+    if codigo != "FT-001":
+        return jsonify({"erro": "Cocho não encontrado."}), 404
+
+    token_configurado = os.getenv("FERMENTECH_SENSOR_TOKEN", "").strip()
+    token_recebido = request.headers.get("X-Sensor-Token", "").strip()
+
+    if not token_configurado:
+        app.logger.error("FERMENTECH_SENSOR_TOKEN não está configurado.")
+        return jsonify({"erro": "Recebimento do sensor não está configurado."}), 503
+
+    if not token_recebido or not secrets.compare_digest(
+        token_recebido, token_configurado
+    ):
+        return jsonify({"erro": "Token do sensor inválido."}), 401
+
+    dados = request.get_json(silent=True)
+    if not isinstance(dados, dict) or "temperatura" not in dados:
+        return jsonify({"erro": "Envie a temperatura em JSON."}), 400
+
+    try:
+        temperatura = float(dados["temperatura"])
+    except (TypeError, ValueError):
+        return jsonify({"erro": "Temperatura inválida."}), 400
+
+    # -127 °C é o valor de erro do DS18B20, não uma medição válida.
+    if temperatura == -127.0:
+        return jsonify({"erro": "Leitura inválida do DS18B20."}), 400
+
+    if not (-50 <= temperatura <= 125):
+        return jsonify({"erro": "Temperatura fora do intervalo do DS18B20."}), 400
+
+    try:
+        leitura_id = registrar_leitura_fermentacao(
+            temperatura=temperatura,
+            status="Leitura real",
+            cocho_codigo=codigo,
+        )
+    except ValueError as erro:
+        return jsonify({"erro": str(erro)}), 400
+    except sqlite3.Error:
+        app.logger.exception("Erro ao salvar leitura recebida do Arduino.")
+        return jsonify({"erro": "Não foi possível salvar a leitura."}), 500
+
+    return jsonify({
+        "mensagem": "Temperatura recebida e registrada.",
+        "id": leitura_id,
+        "cocho": codigo,
+        "temperatura": temperatura,
+        "status": "Leitura real",
+    }), 201
+
+
+# ============================================================
 # LISTAR FUNCIONÁRIOS
 # ============================================================
 
