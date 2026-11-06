@@ -1267,7 +1267,7 @@ def teste_senha():
 # ============================================================
 
 def obter_cliente_gemini():
-    """Cria o cliente Gemini somente quando uma rota de IA é utilizada."""
+    """Cria o cliente Gemini com limite de tempo e tentativas controladas."""
     chave = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not chave:
@@ -1275,32 +1275,67 @@ def obter_cliente_gemini():
 
     try:
         from google import genai
-        return genai.Client(api_key=chave), None
+        from google.genai import types
+
+        opcoes_http = types.HttpOptions(
+            timeout=12000,
+            retry_options=types.HttpRetryOptions(
+                attempts=2,
+                initial_delay=0.5,
+                max_delay=2.0,
+                http_status_codes=[408, 429, 500, 502, 503, 504],
+            ),
+        )
+
+        cliente = genai.Client(
+            api_key=chave,
+            http_options=opcoes_http,
+        )
+
+        return cliente, None
+
     except ImportError:
         app.logger.exception("O pacote google-genai não está instalado.")
         return None, "pacote"
 
+    except Exception:
+        app.logger.exception("Erro ao inicializar o cliente Gemini.")
+        return None, "cliente"
+
 
 def modelo_gemini():
-    """Retorna o modelo configurado no .env ou o padrão."""
+    """Retorna o modelo configurado no ambiente ou o padrão."""
     return os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
 
 
 @app.route("/api/ia/recomendacao", methods=["POST"])
 def api_ia_recomendacao():
     """Gera orientações com base nas leituras reais salvas no banco."""
+
     if not session.get("autenticado"):
-        return jsonify({"erro": "Faça login para utilizar a inteligência artificial."}), 401
+        return jsonify({
+            "erro": "Faça login para utilizar a inteligência artificial."
+        }), 401
 
     cliente, problema_configuracao = obter_cliente_gemini()
+
     if cliente is None:
         if problema_configuracao == "chave":
-            mensagem = "Configure GEMINI_API_KEY no arquivo .env para ativar a IA."
+            mensagem = "Configure GEMINI_API_KEY no ambiente do FERMENTECH."
+        elif problema_configuracao == "pacote":
+            mensagem = (
+                "A biblioteca google-genai não está instalada. "
+                "Execute python -m pip install google-genai."
+            )
         else:
-            mensagem = "A biblioteca google-genai não está instalada. Execute python -m pip install google-genai."
+            mensagem = "Não foi possível inicializar a conexão com a IA."
+
         return jsonify({"erro": mensagem}), 503
 
     try:
+        from google.genai import types
+
+        # Busca as últimas leituras do cocho FT-001.
         with conectar_banco() as conexao:
             linhas = conexao.execute(
                 """
@@ -1313,37 +1348,54 @@ def api_ia_recomendacao():
                 ("FT-001",),
             ).fetchall()
 
-        # Não apresenta registros identificados como simulados à IA.
+        # Impede que leituras simuladas sejam utilizadas pela IA.
         leituras = [
-            dict(linha) for linha in linhas
+            dict(linha)
+            for linha in linhas
             if "SIMULADO" not in str(linha["status"]).upper()
         ][:20]
 
         if leituras:
-            resumo = "Leituras reais registradas no banco (mais recentes primeiro):\n" + "\n".join(
-                f"- Data/hora: {item['data_hora']}; temperatura: {item['temperatura']} °C; status registrado: {item['status']}"
-                for item in leituras
+            resumo = (
+                "Leituras reais registradas no banco "
+                "(mais recentes primeiro):\n"
+                + "\n".join(
+                    f"- Data/hora: {item['data_hora']}; "
+                    f"temperatura: {item['temperatura']} °C; "
+                    f"status registrado: {item['status']}"
+                    for item in leituras
+                )
             )
         else:
             resumo = (
-                "Não há leituras reais disponíveis no banco. Não invente temperaturas, "
-                "tendências ou alertas. Forneça somente orientações gerais e diga claramente "
-                "que a análise baseada em dados reais depende da conexão e do recebimento "
-                "das leituras dos sensores."
+                "Não há leituras reais disponíveis no banco. "
+                "Não invente temperaturas, tendências ou alertas. "
+                "Forneça somente orientações gerais e diga claramente "
+                "que a análise baseada em dados reais depende da conexão "
+                "e do recebimento das leituras dos sensores."
             )
 
         prompt = f"""
-Você é o assistente de apoio do FERMENTECH, sistema de acompanhamento da fermentação de cacau.
+Você é o assistente de apoio do FERMENTECH,
+sistema de acompanhamento da fermentação de cacau.
+
 Responda em português brasileiro, de maneira clara e prática.
+
 Use somente os dados fornecidos e nunca invente medições.
-Não declare que a fermentação está boa ou ruim de forma definitiva apenas com base em dados limitados.
-As condições adequadas podem variar conforme o método, o ambiente e o processo utilizado.
+
+Não declare que a fermentação está boa ou ruim de forma definitiva
+apenas com base em dados limitados.
+
+As condições adequadas podem variar conforme o método,
+o ambiente e o processo utilizado.
+
 Não substitua a avaliação da equipe responsável.
 
 DADOS DISPONÍVEIS:
 {resumo}
 
 Organize a resposta em:
+
 1. Situação dos dados
 2. Observações
 3. Próximos passos sugeridos
@@ -1352,92 +1404,203 @@ Organize a resposta em:
         resposta = cliente.models.generate_content(
             model=modelo_gemini(),
             contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.3,
+                max_output_tokens=900,
+            ),
         )
+
         texto = getattr(resposta, "text", None)
+
         if not texto:
-            return jsonify({"erro": "A IA não retornou uma resposta. Tente novamente."}), 502
+            return jsonify({
+                "erro": "A IA não retornou uma resposta. Tente novamente."
+            }), 502
 
         return jsonify({
             "resposta": texto,
             "leituras_reais_analisadas": len(leituras),
-            "aviso": "As recomendações são informativas. Confirme as decisões com a equipe responsável.",
+            "aviso": (
+                "As recomendações são informativas. "
+                "Confirme as decisões com a equipe responsável."
+            ),
         })
 
-    except Exception:
+    except Exception as erro:
         app.logger.exception("Erro ao gerar recomendação com a IA.")
-        return jsonify({
-            "erro": "Não foi possível consultar a IA. Confira a configuração e o terminal do Flask."
-        }), 502
+
+        mensagem_erro = str(erro).upper()
+
+        if "503" in mensagem_erro or "UNAVAILABLE" in mensagem_erro:
+            mensagem = (
+                "O serviço de inteligência artificial está temporariamente "
+                "indisponível. Aguarde um pouco e tente novamente."
+            )
+        elif "429" in mensagem_erro or "RESOURCE_EXHAUSTED" in mensagem_erro:
+            mensagem = (
+                "O limite de utilização da IA foi atingido. "
+                "Aguarde antes de tentar novamente."
+            )
+        elif "TIMEOUT" in mensagem_erro or "TIMED OUT" in mensagem_erro:
+            mensagem = (
+                "A IA demorou muito para responder. "
+                "Tente novamente em alguns instantes."
+            )
+        else:
+            mensagem = (
+                "Não foi possível consultar a IA. "
+                "Tente novamente mais tarde."
+            )
+
+        return jsonify({"erro": mensagem}), 502
 
 
 @app.route("/api/ia/analisar-foto", methods=["POST"])
 def api_ia_analisar_foto():
-    """Analisa visualmente uma foto enviada no campo 'foto'; não a salva no servidor."""
+    """Analisa uma fotografia sem armazená-la no servidor."""
+
     if not session.get("autenticado"):
-        return jsonify({"erro": "Faça login para utilizar a inteligência artificial."}), 401
+        return jsonify({
+            "erro": "Faça login para utilizar a inteligência artificial."
+        }), 401
 
     arquivo = request.files.get("foto")
+
     if not arquivo or not arquivo.filename:
-        return jsonify({"erro": "Selecione uma fotografia antes de solicitar a análise."}), 400
+        return jsonify({
+            "erro": "Selecione uma fotografia antes de solicitar a análise."
+        }), 400
 
     mime = (arquivo.mimetype or "").lower()
-    tipos_permitidos = {"image/jpeg", "image/png", "image/webp"}
+
+    tipos_permitidos = {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+    }
+
     if mime not in tipos_permitidos:
-        return jsonify({"erro": "Formato não permitido. Envie uma imagem JPG, PNG ou WEBP."}), 400
+        return jsonify({
+            "erro": "Formato não permitido. Envie uma imagem JPG, PNG ou WEBP."
+        }), 400
 
     imagem = arquivo.read()
+
     if not imagem:
-        return jsonify({"erro": "O arquivo enviado está vazio."}), 400
+        return jsonify({
+            "erro": "O arquivo enviado está vazio."
+        }), 400
+
     if len(imagem) > 5 * 1024 * 1024:
-        return jsonify({"erro": "A imagem deve ter no máximo 5 MB."}), 413
+        return jsonify({
+            "erro": "A imagem deve ter no máximo 5 MB."
+        }), 413
 
     cliente, problema_configuracao = obter_cliente_gemini()
+
     if cliente is None:
         if problema_configuracao == "chave":
-            mensagem = "Configure GEMINI_API_KEY no arquivo .env para ativar a IA."
+            mensagem = "Configure GEMINI_API_KEY no ambiente do FERMENTECH."
+        elif problema_configuracao == "pacote":
+            mensagem = (
+                "A biblioteca google-genai não está instalada. "
+                "Execute python -m pip install google-genai."
+            )
         else:
-            mensagem = "A biblioteca google-genai não está instalada. Execute python -m pip install google-genai."
+            mensagem = "Não foi possível inicializar a conexão com a IA."
+
         return jsonify({"erro": mensagem}), 503
 
     try:
         from google.genai import types
 
         prompt = """
-Você auxilia na inspeção visual de amêndoas de cacau no sistema FERMENTECH.
-Descreva somente características visíveis na fotografia, como cor aparente, uniformidade e possíveis alterações visíveis.
-Não confirme fermentação, segurança alimentar, sabor ou qualidade final apenas pela imagem.
-Iluminação, câmera e forma de corte podem alterar a aparência. Se não for possível identificar claramente as amêndoas, informe essa limitação.
+Você auxilia na inspeção visual de amêndoas de cacau
+no sistema FERMENTECH.
+
+Descreva somente características visíveis na fotografia,
+como cor aparente, uniformidade e possíveis alterações visíveis.
+
+Não confirme fermentação, segurança alimentar, sabor
+ou qualidade final apenas pela imagem.
+
+Iluminação, câmera e forma de corte podem alterar a aparência.
+
+Se não for possível identificar claramente as amêndoas,
+informe essa limitação.
+
 Responda em português brasileiro com as seções:
+
 1. O que é possível observar
 2. Limitações da imagem
 3. Próximos passos sugeridos
+
 Não invente características que não estejam visíveis.
 """
-        parte_imagem = types.Part.from_bytes(data=imagem, mime_type=mime)
+
+        parte_imagem = types.Part.from_bytes(
+            data=imagem,
+            mime_type=mime,
+        )
+
         resposta = cliente.models.generate_content(
             model=modelo_gemini(),
             contents=[prompt, parte_imagem],
+            config=types.GenerateContentConfig(
+                temperature=0.3,
+                max_output_tokens=900,
+            ),
         )
+
         texto = getattr(resposta, "text", None)
+
         if not texto:
-            return jsonify({"erro": "A IA não retornou uma análise. Tente novamente."}), 502
+            return jsonify({
+                "erro": "A IA não retornou uma análise. Tente novamente."
+            }), 502
 
         return jsonify({
             "resposta": texto,
-            "aviso": "A análise visual é preliminar e não confirma, sozinha, a qualidade ou a segurança do cacau.",
+            "aviso": (
+                "A análise visual é preliminar e não confirma, "
+                "sozinha, a qualidade ou a segurança do cacau."
+            ),
         })
 
-    except Exception:
+    except Exception as erro:
         app.logger.exception("Erro durante a análise da fotografia.")
-        return jsonify({
-            "erro": "Não foi possível analisar a fotografia. Confira a configuração da IA e o terminal do Flask."
-        }), 502
+
+        mensagem_erro = str(erro).upper()
+
+        if "503" in mensagem_erro or "UNAVAILABLE" in mensagem_erro:
+            mensagem = (
+                "O serviço de inteligência artificial está temporariamente "
+                "indisponível. Tente novamente em alguns instantes."
+            )
+        elif "429" in mensagem_erro or "RESOURCE_EXHAUSTED" in mensagem_erro:
+            mensagem = (
+                "O limite de utilização da IA foi atingido. "
+                "Aguarde antes de tentar novamente."
+            )
+        elif "TIMEOUT" in mensagem_erro or "TIMED OUT" in mensagem_erro:
+            mensagem = (
+                "A análise da fotografia demorou muito. "
+                "Tente novamente com outra imagem."
+            )
+        else:
+            mensagem = (
+                "Não foi possível analisar a fotografia. "
+                "Tente novamente mais tarde."
+            )
+
+        return jsonify({"erro": mensagem}), 502
 
 
 @app.errorhandler(413)
 def arquivo_muito_grande(_erro):
-    return jsonify({"erro": "O arquivo é muito grande. Envie uma imagem de até 5 MB."}), 413
-
+    return jsonify({
+        "erro": "O arquivo é muito grande. Envie uma imagem de até 5 MB."
+    }), 413
 
 # ============================================================
 # ROTA DE TESTE DO SERVIDOR
