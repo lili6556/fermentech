@@ -1,7 +1,4 @@
-
 Flask
 gunicorn
 python-dotenv
-Werkzeug
-google-generativeai
 google-genai
