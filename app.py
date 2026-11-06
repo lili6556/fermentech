@@ -1262,12 +1262,13 @@ def teste_senha():
     """, 500
 
 
+
 # ============================================================
 # INTELIGÊNCIA ARTIFICIAL - GEMINI
 # ============================================================
 
 def obter_cliente_gemini():
-    """Cria o cliente Gemini com limite de tempo e tentativas controladas."""
+    """Cria o cliente Gemini com tempo limite e sem várias tentativas automáticas."""
     chave = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not chave:
@@ -1277,19 +1278,14 @@ def obter_cliente_gemini():
         from google import genai
         from google.genai import types
 
-        opcoes_http = types.HttpOptions(
-            timeout=12000,
-            retry_options=types.HttpRetryOptions(
-                attempts=2,
-                initial_delay=0.5,
-                max_delay=2.0,
-                http_status_codes=[408, 429, 500, 502, 503, 504],
-            ),
-        )
-
         cliente = genai.Client(
             api_key=chave,
-            http_options=opcoes_http,
+            http_options=types.HttpOptions(
+                timeout=20000,
+                retry_options=types.HttpRetryOptions(
+                    attempts=1
+                )
+            )
         )
 
         return cliente, None
@@ -1304,38 +1300,62 @@ def obter_cliente_gemini():
 
 
 def modelo_gemini():
-    """Retorna o modelo configurado no ambiente ou o padrão."""
+    """Retorna o modelo configurado no Render ou o modelo padrão."""
     return os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+
+
+def erro_gemini(erro):
+    """Identifica indisponibilidade ou demora na resposta do Gemini."""
+    codigo = getattr(erro, "code", None)
+    mensagem_erro = str(erro).lower()
+
+    if codigo in (503, 504) or "deadline" in mensagem_erro or "timeout" in mensagem_erro:
+        return (
+            "O serviço de inteligência artificial está demorando ou temporariamente "
+            "indisponível. Aguarde um pouco e tente novamente.",
+            503
+        )
+
+    if codigo == 429:
+        return (
+            "O limite de solicitações da IA foi atingido. Aguarde antes de tentar novamente.",
+            429
+        )
+
+    return (
+        "Não foi possível consultar a inteligência artificial. "
+        "Tente novamente em alguns instantes.",
+        502
+    )
+
+
+def resposta_configuracao_ia(problema):
+    if problema == "chave":
+        return "Configure GEMINI_API_KEY nas variáveis de ambiente do Render."
+
+    if problema == "pacote":
+        return "A biblioteca google-genai não está instalada. Verifique o requirements.txt."
+
+    return "Não foi possível inicializar o serviço de inteligência artificial."
 
 
 @app.route("/api/ia/recomendacao", methods=["POST"])
 def api_ia_recomendacao():
-    """Gera orientações com base nas leituras reais salvas no banco."""
+    """Gera recomendações com base nas leituras reais do banco de dados."""
 
     if not session.get("autenticado"):
         return jsonify({
             "erro": "Faça login para utilizar a inteligência artificial."
         }), 401
 
-    cliente, problema_configuracao = obter_cliente_gemini()
+    cliente, problema = obter_cliente_gemini()
 
     if cliente is None:
-        if problema_configuracao == "chave":
-            mensagem = "Configure GEMINI_API_KEY no ambiente do FERMENTECH."
-        elif problema_configuracao == "pacote":
-            mensagem = (
-                "A biblioteca google-genai não está instalada. "
-                "Execute python -m pip install google-genai."
-            )
-        else:
-            mensagem = "Não foi possível inicializar a conexão com a IA."
-
-        return jsonify({"erro": mensagem}), 503
+        return jsonify({
+            "erro": resposta_configuracao_ia(problema)
+        }), 503
 
     try:
-        from google.genai import types
-
-        # Busca as últimas leituras do cocho FT-001.
         with conectar_banco() as conexao:
             linhas = conexao.execute(
                 """
@@ -1345,10 +1365,10 @@ def api_ia_recomendacao():
                 ORDER BY data_hora DESC, id DESC
                 LIMIT 30
                 """,
-                ("FT-001",),
+                ("FT-001",)
             ).fetchall()
 
-        # Impede que leituras simuladas sejam utilizadas pela IA.
+        # Remove leituras simuladas antes de enviar os dados à IA.
         leituras = [
             dict(linha)
             for linha in linhas
@@ -1357,57 +1377,58 @@ def api_ia_recomendacao():
 
         if leituras:
             resumo = (
-                "Leituras reais registradas no banco "
-                "(mais recentes primeiro):\n"
-                + "\n".join(
-                    f"- Data/hora: {item['data_hora']}; "
-                    f"temperatura: {item['temperatura']} °C; "
-                    f"status registrado: {item['status']}"
-                    for item in leituras
-                )
+                "Leituras reais registradas no banco, "
+                "da mais recente para a mais antiga:\n"
             )
+
+            resumo += "\n".join(
+                f"- Data/hora: {item['data_hora']}; "
+                f"temperatura: {item['temperatura']} °C; "
+                f"status: {item['status']}"
+                for item in leituras
+            )
+
         else:
             resumo = (
-                "Não há leituras reais disponíveis no banco. "
+                "Não existem leituras reais disponíveis no banco de dados. "
                 "Não invente temperaturas, tendências ou alertas. "
-                "Forneça somente orientações gerais e diga claramente "
-                "que a análise baseada em dados reais depende da conexão "
-                "e do recebimento das leituras dos sensores."
+                "Explique que ainda não é possível avaliar a fermentação "
+                "com base em dados reais e forneça somente orientações gerais."
             )
 
         prompt = f"""
-Você é o assistente de apoio do FERMENTECH,
-sistema de acompanhamento da fermentação de cacau.
+Você é o assistente inteligente do FERMENTECH,
+um sistema de acompanhamento da fermentação de cacau.
 
-Responda em português brasileiro, de maneira clara e prática.
+Responda em português brasileiro, com linguagem clara,
+objetiva e profissional.
 
-Use somente os dados fornecidos e nunca invente medições.
-
-Não declare que a fermentação está boa ou ruim de forma definitiva
-apenas com base em dados limitados.
-
-As condições adequadas podem variar conforme o método,
-o ambiente e o processo utilizado.
-
-Não substitua a avaliação da equipe responsável.
+REGRAS:
+- Utilize somente os dados fornecidos.
+- Nunca invente temperaturas ou medições.
+- Não trate dados simulados como reais.
+- Não declare que a fermentação está boa ou ruim
+  definitivamente com base em dados limitados.
+- Considere que as condições podem variar conforme
+  o método de fermentação e o ambiente.
+- Não substitua a avaliação da equipe responsável.
 
 DADOS DISPONÍVEIS:
 {resumo}
 
-Organize a resposta em:
+Organize a resposta nas seguintes seções:
 
 1. Situação dos dados
 2. Observações
 3. Próximos passos sugeridos
+
+Se não houver leituras reais, deixe isso claro
+e não apresente conclusões sobre o estado da fermentação.
 """
 
         resposta = cliente.models.generate_content(
             model=modelo_gemini(),
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.3,
-                max_output_tokens=900,
-            ),
+            contents=prompt
         )
 
         texto = getattr(resposta, "text", None)
@@ -1423,36 +1444,17 @@ Organize a resposta em:
             "aviso": (
                 "As recomendações são informativas. "
                 "Confirme as decisões com a equipe responsável."
-            ),
-        })
+            )
+        }), 200
 
     except Exception as erro:
         app.logger.exception("Erro ao gerar recomendação com a IA.")
 
-        mensagem_erro = str(erro).upper()
+        mensagem, codigo = erro_gemini(erro)
 
-        if "503" in mensagem_erro or "UNAVAILABLE" in mensagem_erro:
-            mensagem = (
-                "O serviço de inteligência artificial está temporariamente "
-                "indisponível. Aguarde um pouco e tente novamente."
-            )
-        elif "429" in mensagem_erro or "RESOURCE_EXHAUSTED" in mensagem_erro:
-            mensagem = (
-                "O limite de utilização da IA foi atingido. "
-                "Aguarde antes de tentar novamente."
-            )
-        elif "TIMEOUT" in mensagem_erro or "TIMED OUT" in mensagem_erro:
-            mensagem = (
-                "A IA demorou muito para responder. "
-                "Tente novamente em alguns instantes."
-            )
-        else:
-            mensagem = (
-                "Não foi possível consultar a IA. "
-                "Tente novamente mais tarde."
-            )
-
-        return jsonify({"erro": mensagem}), 502
+        return jsonify({
+            "erro": mensagem
+        }), codigo
 
 
 @app.route("/api/ia/analisar-foto", methods=["POST"])
@@ -1476,7 +1478,7 @@ def api_ia_analisar_foto():
     tipos_permitidos = {
         "image/jpeg",
         "image/png",
-        "image/webp",
+        "image/webp"
     }
 
     if mime not in tipos_permitidos:
@@ -1496,60 +1498,53 @@ def api_ia_analisar_foto():
             "erro": "A imagem deve ter no máximo 5 MB."
         }), 413
 
-    cliente, problema_configuracao = obter_cliente_gemini()
+    cliente, problema = obter_cliente_gemini()
 
     if cliente is None:
-        if problema_configuracao == "chave":
-            mensagem = "Configure GEMINI_API_KEY no ambiente do FERMENTECH."
-        elif problema_configuracao == "pacote":
-            mensagem = (
-                "A biblioteca google-genai não está instalada. "
-                "Execute python -m pip install google-genai."
-            )
-        else:
-            mensagem = "Não foi possível inicializar a conexão com a IA."
-
-        return jsonify({"erro": mensagem}), 503
+        return jsonify({
+            "erro": resposta_configuracao_ia(problema)
+        }), 503
 
     try:
         from google.genai import types
 
         prompt = """
-Você auxilia na inspeção visual de amêndoas de cacau
-no sistema FERMENTECH.
+Você é o assistente de inspeção visual do FERMENTECH,
+um sistema de acompanhamento da fermentação de cacau.
 
-Descreva somente características visíveis na fotografia,
-como cor aparente, uniformidade e possíveis alterações visíveis.
+Analise a fotografia enviada e responda em português brasileiro.
 
-Não confirme fermentação, segurança alimentar, sabor
-ou qualidade final apenas pela imagem.
+Observe somente características realmente visíveis,
+como cor aparente, uniformidade e possíveis alterações superficiais.
 
-Iluminação, câmera e forma de corte podem alterar a aparência.
+REGRAS IMPORTANTES:
+- Não invente características que não aparecem na imagem.
+- Não confirme a fermentação somente pela fotografia.
+- Não confirme segurança alimentar, sabor ou qualidade final.
+- Considere que iluminação e câmera podem alterar as cores.
+- Se não for possível identificar claramente as amêndoas,
+  informe essa limitação.
+- Explique quando for necessário realizar um teste de corte
+  para avaliar o interior das amêndoas.
 
-Se não for possível identificar claramente as amêndoas,
-informe essa limitação.
-
-Responda em português brasileiro com as seções:
+Organize a resposta nas seguintes seções:
 
 1. O que é possível observar
 2. Limitações da imagem
 3. Próximos passos sugeridos
-
-Não invente características que não estejam visíveis.
 """
 
         parte_imagem = types.Part.from_bytes(
             data=imagem,
-            mime_type=mime,
+            mime_type=mime
         )
 
         resposta = cliente.models.generate_content(
             model=modelo_gemini(),
-            contents=[prompt, parte_imagem],
-            config=types.GenerateContentConfig(
-                temperature=0.3,
-                max_output_tokens=900,
-            ),
+            contents=[
+                prompt,
+                parte_imagem
+            ]
         )
 
         texto = getattr(resposta, "text", None)
@@ -1563,37 +1558,18 @@ Não invente características que não estejam visíveis.
             "resposta": texto,
             "aviso": (
                 "A análise visual é preliminar e não confirma, "
-                "sozinha, a qualidade ou a segurança do cacau."
-            ),
-        })
+                "sozinha, a qualidade ou a segurança alimentar do cacau."
+            )
+        }), 200
 
     except Exception as erro:
         app.logger.exception("Erro durante a análise da fotografia.")
 
-        mensagem_erro = str(erro).upper()
+        mensagem, codigo = erro_gemini(erro)
 
-        if "503" in mensagem_erro or "UNAVAILABLE" in mensagem_erro:
-            mensagem = (
-                "O serviço de inteligência artificial está temporariamente "
-                "indisponível. Tente novamente em alguns instantes."
-            )
-        elif "429" in mensagem_erro or "RESOURCE_EXHAUSTED" in mensagem_erro:
-            mensagem = (
-                "O limite de utilização da IA foi atingido. "
-                "Aguarde antes de tentar novamente."
-            )
-        elif "TIMEOUT" in mensagem_erro or "TIMED OUT" in mensagem_erro:
-            mensagem = (
-                "A análise da fotografia demorou muito. "
-                "Tente novamente com outra imagem."
-            )
-        else:
-            mensagem = (
-                "Não foi possível analisar a fotografia. "
-                "Tente novamente mais tarde."
-            )
-
-        return jsonify({"erro": mensagem}), 502
+        return jsonify({
+            "erro": mensagem
+        }), codigo
 
 
 @app.errorhandler(413)
@@ -1601,6 +1577,7 @@ def arquivo_muito_grande(_erro):
     return jsonify({
         "erro": "O arquivo é muito grande. Envie uma imagem de até 5 MB."
     }), 413
+
 
 # ============================================================
 # ROTA DE TESTE DO SERVIDOR
