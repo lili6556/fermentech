@@ -1268,7 +1268,8 @@ def teste_senha():
 # ============================================================
 
 def obter_cliente_gemini():
-    """Cria o cliente Gemini com tempo limite e sem várias tentativas automáticas."""
+    """Cria o cliente Gemini com tempo limite e uma tentativa."""
+
     chave = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not chave:
@@ -1291,57 +1292,189 @@ def obter_cliente_gemini():
         return cliente, None
 
     except ImportError:
-        app.logger.exception("O pacote google-genai não está instalado.")
+        app.logger.exception(
+            "O pacote google-genai não está instalado."
+        )
         return None, "pacote"
 
     except Exception:
-        app.logger.exception("Erro ao inicializar o cliente Gemini.")
+        app.logger.exception(
+            "Erro ao inicializar o cliente Gemini."
+        )
         return None, "cliente"
 
 
 def modelo_gemini():
-    """Retorna o modelo configurado no Render ou o modelo padrão."""
-    return os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    """Modelo configurado no Render."""
+
+    return os.getenv(
+        "GEMINI_MODEL",
+        "gemini-3.5-flash-lite"
+    ).strip()
+
+
+def modo_demo_ativado():
+    """Verifica se a alternativa de demonstração está habilitada."""
+
+    return (
+        os.getenv("FERMENTECH_IA_MODO_DEMO", "false").strip().lower()
+        in ("true", "1", "sim", "yes")
+    )
 
 
 def erro_gemini(erro):
-    """Identifica indisponibilidade ou demora na resposta do Gemini."""
-    codigo = getattr(erro, "code", None)
+    """Identifica os principais erros retornados pela API."""
+
+    codigo = (
+        getattr(erro, "code", None)
+        or getattr(erro, "status_code", None)
+    )
+
     mensagem_erro = str(erro).lower()
 
-    if codigo in (503, 504) or "deadline" in mensagem_erro or "timeout" in mensagem_erro:
+    if (
+        codigo in (408, 429, 500, 502, 503, 504)
+        or "deadline" in mensagem_erro
+        or "timeout" in mensagem_erro
+        or "timed out" in mensagem_erro
+    ):
         return (
-            "O serviço de inteligência artificial está demorando ou temporariamente "
-            "indisponível. Aguarde um pouco e tente novamente.",
-            503
-        )
-
-    if codigo == 429:
-        return (
-            "O limite de solicitações da IA foi atingido. Aguarde antes de tentar novamente.",
-            429
+            "A inteligência artificial está temporariamente "
+            "indisponível. Tente novamente em alguns instantes.",
+            503,
+            True
         )
 
     return (
         "Não foi possível consultar a inteligência artificial. "
-        "Tente novamente em alguns instantes.",
-        502
+        "Tente novamente mais tarde.",
+        502,
+        False
     )
 
 
 def resposta_configuracao_ia(problema):
+    """Mensagens para problemas de configuração."""
+
     if problema == "chave":
-        return "Configure GEMINI_API_KEY nas variáveis de ambiente do Render."
+        return (
+            "A chave GEMINI_API_KEY não foi configurada "
+            "nas variáveis de ambiente."
+        )
 
     if problema == "pacote":
-        return "A biblioteca google-genai não está instalada. Verifique o requirements.txt."
+        return (
+            "A biblioteca google-genai não está instalada. "
+            "Verifique o requirements.txt."
+        )
 
-    return "Não foi possível inicializar o serviço de inteligência artificial."
+    return (
+        "Não foi possível inicializar o serviço de "
+        "inteligência artificial."
+    )
 
+
+def resposta_demo_recomendacao(quantidade_leituras=0):
+    """
+    Resposta alternativa para demonstração.
+    Não representa uma análise gerada pela IA.
+    """
+
+    texto = """
+MODO DE DEMONSTRAÇÃO
+
+A inteligência artificial do Google está temporariamente
+indisponível. Por isso, esta resposta é um exemplo previamente
+preparado e não foi gerada pela IA neste momento.
+
+1. Situação dos dados
+
+O FERMENTECH utiliza as leituras de temperatura registradas
+no sistema para acompanhar a fermentação do cacau.
+
+2. Observações
+
+A temperatura é um dos parâmetros importantes para acompanhar
+o processo. Entretanto, sua interpretação depende do tempo
+de fermentação, das condições do ambiente e do método utilizado.
+
+3. Próximos passos sugeridos
+
+- Verificar se os sensores estão conectados corretamente.
+- Acompanhar as temperaturas registradas no sistema.
+- Realizar inspeções periódicas na massa de cacau.
+- Seguir as orientações da equipe responsável.
+- Consultar novamente a IA quando o serviço estiver disponível.
+
+Esta é uma resposta ilustrativa. Ela não representa uma
+avaliação real da fermentação.
+"""
+
+    return jsonify({
+        "resposta": texto,
+        "modo_demonstracao": True,
+        "origem": "demonstração",
+        "leituras_reais_analisadas": quantidade_leituras,
+        "aviso": (
+            "Resposta previamente preparada para demonstração. "
+            "Não foi gerada pela inteligência artificial."
+        )
+    }), 200
+
+
+def resposta_demo_fotografia():
+    """
+    Resposta alternativa para demonstração.
+    Não afirma ter analisado a fotografia enviada.
+    """
+
+    texto = """
+MODO DE DEMONSTRAÇÃO
+
+A inteligência artificial está temporariamente indisponível.
+O conteúdo abaixo é um exemplo ilustrativo e não corresponde
+à análise da fotografia enviada.
+
+1. O que é possível observar
+
+Em uma inspeção visual das amêndoas, podem ser observados
+aspectos como coloração aparente, uniformidade e características
+superficiais.
+
+2. Limitações da imagem
+
+Uma fotografia isolada não permite confirmar o grau de
+fermentação, as características internas, o sabor ou a
+segurança alimentar das amêndoas.
+
+3. Próximos passos sugeridos
+
+- Realizar uma inspeção visual presencial.
+- Verificar as condições da massa de cacau.
+- Quando necessário, realizar o teste de corte das amêndoas.
+- Consultar novamente a IA quando o serviço estiver disponível.
+
+Esta resposta é apenas um exemplo de demonstração.
+A fotografia enviada não foi analisada.
+"""
+
+    return jsonify({
+        "resposta": texto,
+        "modo_demonstracao": True,
+        "origem": "demonstração",
+        "aviso": (
+            "Exemplo ilustrativo. A fotografia enviada não foi "
+            "analisada pela inteligência artificial."
+        )
+    }), 200
+
+
+# ============================================================
+# RECOMENDAÇÕES INTELIGENTES
+# ============================================================
 
 @app.route("/api/ia/recomendacao", methods=["POST"])
 def api_ia_recomendacao():
-    """Gera recomendações com base nas leituras reais do banco de dados."""
 
     if not session.get("autenticado"):
         return jsonify({
@@ -1368,7 +1501,7 @@ def api_ia_recomendacao():
                 ("FT-001",)
             ).fetchall()
 
-        # Remove leituras simuladas antes de enviar os dados à IA.
+        # Somente leituras reais.
         leituras = [
             dict(linha)
             for linha in linhas
@@ -1390,10 +1523,9 @@ def api_ia_recomendacao():
 
         else:
             resumo = (
-                "Não existem leituras reais disponíveis no banco de dados. "
+                "Não existem leituras reais disponíveis no banco. "
                 "Não invente temperaturas, tendências ou alertas. "
-                "Explique que ainda não é possível avaliar a fermentação "
-                "com base em dados reais e forneça somente orientações gerais."
+                "Forneça somente orientações gerais."
             )
 
         prompt = f"""
@@ -1434,12 +1566,17 @@ e não apresente conclusões sobre o estado da fermentação.
         texto = getattr(resposta, "text", None)
 
         if not texto:
+            if modo_demo_ativado():
+                return resposta_demo_recomendacao(len(leituras))
+
             return jsonify({
                 "erro": "A IA não retornou uma resposta. Tente novamente."
             }), 502
 
         return jsonify({
             "resposta": texto,
+            "modo_demonstracao": False,
+            "origem": "gemini",
             "leituras_reais_analisadas": len(leituras),
             "aviso": (
                 "As recomendações são informativas. "
@@ -1448,18 +1585,35 @@ e não apresente conclusões sobre o estado da fermentação.
         }), 200
 
     except Exception as erro:
-        app.logger.exception("Erro ao gerar recomendação com a IA.")
+        app.logger.exception(
+            "Erro ao gerar recomendação com a IA."
+        )
 
-        mensagem, codigo = erro_gemini(erro)
+        mensagem, codigo, temporario = erro_gemini(erro)
+
+        if temporario and modo_demo_ativado():
+            app.logger.warning(
+                "Utilizando resposta alternativa de demonstração."
+            )
+
+            try:
+                quantidade = len(leituras)
+            except (NameError, UnboundLocalError):
+                quantidade = 0
+
+            return resposta_demo_recomendacao(quantidade)
 
         return jsonify({
             "erro": mensagem
         }), codigo
 
 
+# ============================================================
+# ANÁLISE VISUAL DA FOTOGRAFIA
+# ============================================================
+
 @app.route("/api/ia/analisar-foto", methods=["POST"])
 def api_ia_analisar_foto():
-    """Analisa uma fotografia sem armazená-la no servidor."""
 
     if not session.get("autenticado"):
         return jsonify({
@@ -1550,12 +1704,17 @@ Organize a resposta nas seguintes seções:
         texto = getattr(resposta, "text", None)
 
         if not texto:
+            if modo_demo_ativado():
+                return resposta_demo_fotografia()
+
             return jsonify({
                 "erro": "A IA não retornou uma análise. Tente novamente."
             }), 502
 
         return jsonify({
             "resposta": texto,
+            "modo_demonstracao": False,
+            "origem": "gemini",
             "aviso": (
                 "A análise visual é preliminar e não confirma, "
                 "sozinha, a qualidade ou a segurança alimentar do cacau."
@@ -1563,9 +1722,18 @@ Organize a resposta nas seguintes seções:
         }), 200
 
     except Exception as erro:
-        app.logger.exception("Erro durante a análise da fotografia.")
+        app.logger.exception(
+            "Erro durante a análise da fotografia."
+        )
 
-        mensagem, codigo = erro_gemini(erro)
+        mensagem, codigo, temporario = erro_gemini(erro)
+
+        if temporario and modo_demo_ativado():
+            app.logger.warning(
+                "Utilizando resposta alternativa para fotografia."
+            )
+
+            return resposta_demo_fotografia()
 
         return jsonify({
             "erro": mensagem
