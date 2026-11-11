@@ -646,8 +646,9 @@
 
             display: grid;
 
-            grid-template-columns:
-                repeat(3, minmax(0, 1fr));
+            grid-template-columns: minmax(0, 1fr);
+
+            max-width: 420px;
 
             gap: 14px;
 
@@ -682,7 +683,7 @@
 
         .temperatura-valor {
 
-            color: rgba(63, 29, 18, 0.45);
+            color: var(--cafe);
 
             font-family: "Cormorant Garamond", Georgia, serif;
 
@@ -697,7 +698,7 @@
 
         .temperatura-unidade {
 
-            color: rgba(63, 29, 18, 0.45);
+            color: var(--cafe);
 
             font-family: "Jost", Arial, sans-serif;
 
@@ -1516,118 +1517,52 @@
 
             <div class="sensor-status">
 
-
                 <div class="sensor-icon">
                     🌡️
                 </div>
 
-
                 <div class="sensor-texto">
 
-                    <div class="sensor-titulo">
-
-                        Sensor aguardando conexão
-
+                    <div class="sensor-titulo" id="sensor-titulo">
+                        Aguardando leitura do sensor
                     </div>
-
 
                     <div class="sensor-descricao">
-
-                        O FERMENTECH está preparado para receber
-                        os dados reais dos sensores DS18B20 através
-                        do Arduino Uno.
-
+                        Temperatura medida pelo sensor DS18B20 conectado ao Arduino Uno.
                     </div>
 
-
-                    <div class="aguardando">
-
-                        Nenhuma temperatura real recebida ainda.
-
+                    <div class="aguardando" id="sensor-atualizacao" aria-live="polite">
+                        Buscando a última temperatura registrada...
                     </div>
 
                 </div>
 
-
             </div>
-
-
-            <!-- =============================================
-                 TEMPERATURAS
-                 ============================================= -->
 
             <div class="temperatura">
 
-
                 <div class="temperatura-card">
 
                     <div class="temperatura-label">
-
-                        Sensor 01
-
+                        Temperatura atual
                     </div>
 
-                    <div class="temperatura-valor">
-
+                    <div class="temperatura-valor" id="temperatura-atual" aria-live="polite">
                         --
+                        <span class="temperatura-unidade">°C</span>
+                    </div>
 
-                        <span class="temperatura-unidade">
-                            °C
-                        </span>
-
+                    <div class="temperatura-label" style="margin-top: 12px; margin-bottom: 0;">
+                        Última atualização:
+                        <span id="temperatura-horario">Aguardando dados</span>
                     </div>
 
                 </div>
-
-
-                <div class="temperatura-card">
-
-                    <div class="temperatura-label">
-
-                        Sensor 02
-
-                    </div>
-
-                    <div class="temperatura-valor">
-
-                        --
-
-                        <span class="temperatura-unidade">
-                            °C
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="temperatura-card">
-
-                    <div class="temperatura-label">
-
-                        Sensor 03
-
-                    </div>
-
-                    <div class="temperatura-valor">
-
-                        --
-
-                        <span class="temperatura-unidade">
-                            °C
-                        </span>
-
-                    </div>
-
-                </div>
-
 
             </div>
 
-        </div>
 
-
-        <!-- =================================================
+            <!-- =================================================
              CALENDÁRIO
              ================================================= -->
 
@@ -1906,6 +1841,87 @@
             botao.textContent = textoOriginal;
         }
     }
+
+    // =====================================================
+    // MONITORAMENTO DO SENSOR DS18B20
+    // Consulta o histórico protegido do cocho FT-001.
+    // =====================================================
+
+    const temperaturaAtual = document.getElementById('temperatura-atual');
+    const sensorTitulo = document.getElementById('sensor-titulo');
+    const sensorAtualizacao = document.getElementById('sensor-atualizacao');
+    const temperaturaHorario = document.getElementById('temperatura-horario');
+
+    async function atualizarTemperatura() {
+        if (!temperaturaAtual || !sensorTitulo || !sensorAtualizacao || !temperaturaHorario) {
+            return;
+        }
+
+        try {
+            const resposta = await fetch('/api/cocho/FT-001/history?limit=100', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-store',
+                credentials: 'same-origin'
+            });
+
+            const dados = await resposta.json().catch(() => ({}));
+
+            if (!resposta.ok) {
+                throw new Error(dados.erro || 'Não foi possível consultar a temperatura.');
+            }
+
+            const historico = Array.isArray(dados.history) ? dados.history : [];
+
+            // O histórico também pode conter registros de outros tipos.
+            // A tela apresenta somente medições identificadas como reais.
+            const leituraReal = historico.find(item =>
+                String(item.status || '').trim().toLowerCase() === 'leitura real' &&
+                Number.isFinite(Number(item.temperatura))
+            );
+
+            if (!leituraReal) {
+                temperaturaAtual.firstChild.textContent = '--';
+                sensorTitulo.textContent = 'Aguardando leitura do sensor';
+                sensorAtualizacao.textContent = 'Nenhuma temperatura real recebida ainda.';
+                temperaturaHorario.textContent = 'Aguardando dados';
+                return;
+            }
+
+            const valor = Number(leituraReal.temperatura);
+            temperaturaAtual.firstChild.textContent = valor.toFixed(2);
+
+            let dataLeitura = null;
+            if (leituraReal.data_hora) {
+                const dataTexto = String(leituraReal.data_hora).replace(' ', 'T');
+                dataLeitura = new Date(dataTexto);
+            }
+
+            if (dataLeitura && !Number.isNaN(dataLeitura.getTime())) {
+                temperaturaHorario.textContent = dataLeitura.toLocaleString('pt-BR');
+                const segundosSemAtualizacao = (Date.now() - dataLeitura.getTime()) / 1000;
+
+                if (segundosSemAtualizacao > 60) {
+                    sensorTitulo.textContent = 'Sem atualização recente';
+                    sensorAtualizacao.textContent = 'A última leitura foi recebida há mais de 1 minuto.';
+                } else {
+                    sensorTitulo.textContent = 'Sensor conectado';
+                    sensorAtualizacao.textContent = 'Temperatura real recebida pelo FERMENTECH.';
+                }
+            } else {
+                temperaturaHorario.textContent = leituraReal.data_hora || 'Horário não informado';
+                sensorTitulo.textContent = 'Leitura recebida';
+                sensorAtualizacao.textContent = 'Temperatura real registrada no sistema.';
+            }
+
+        } catch (erro) {
+            sensorTitulo.textContent = 'Não foi possível consultar o sensor';
+            sensorAtualizacao.textContent = erro.message || 'Verifique a conexão com o FERMENTECH.';
+        }
+    }
+
+    atualizarTemperatura();
+    setInterval(atualizarTemperatura, 5000);
 
     const botaoRecomendacao = document.getElementById('botao-recomendacao-ia');
     const resultadoRecomendacao = document.getElementById('resultado-recomendacao-ia');
